@@ -1,5 +1,5 @@
 import subprocess
-from utils import log
+from src.utils import log
 
 def run_hall_on_cnf_content(cnf_content):
     log("Running hall...", 2)
@@ -10,6 +10,7 @@ def run_hall_on_cnf_content(cnf_content):
     return result.stdout
 
 def parse_dnf_content(dnf_content):
+    log("Parsing DNF content", 1)
     cubes = []
     for line in dnf_content.splitlines():
         if line.strip() and not line.startswith('p'):

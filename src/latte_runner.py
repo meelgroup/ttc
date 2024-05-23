@@ -1,5 +1,5 @@
 import subprocess
-from utils import log
+from src.utils import log
 
 def run_latte_on_matrix(matrix_file):
     log("Running latte...", 2)

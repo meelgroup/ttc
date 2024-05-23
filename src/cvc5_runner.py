@@ -1,9 +1,10 @@
 import subprocess
-from literal_mapping import LiteralMapping
-from utils import log
+from src.literal_mapping import LiteralMapping
+from src.utils import log
 
 def run_cvc5_on_smt_file(smt_file):
-    log("Executing cvc5...", 2)
+    log(f"Running cvc5 on {smt_file}", 1)
+
     result = subprocess.run(["cvc5", smt_file], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"cvc5 error: {result.stderr}")
@@ -11,6 +12,7 @@ def run_cvc5_on_smt_file(smt_file):
     return result.stdout
 
 def parse_cvc5_output(output):
+    log("Parsing cvc5 output", 1)
     mapping = LiteralMapping()
     cnf_lines = []
     for line in output.splitlines():

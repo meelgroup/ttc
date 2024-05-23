@@ -1,5 +1,5 @@
 from lark import Lark, Transformer
-from utils import log
+from src.utils import log
 
 class SMTTransformer(Transformer):
     def __init__(self):

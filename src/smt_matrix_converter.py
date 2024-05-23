@@ -1,4 +1,4 @@
-from utils import log
+from src.utils import log
 
 class SMTToMatrixConverter:
     def __init__(self, smt_transformer):
