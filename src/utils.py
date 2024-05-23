@@ -12,10 +12,10 @@ def check_tools(tools):
             raise EnvironmentError(f"{tool} not found in the system PATH.")
 
 def set_verbosity(level):
-    from global_storage import global_storage
+    from src.global_storage import global_storage
     global_storage.verbosity = level
 
 def log(message, level=1):
-    from global_storage import global_storage
+    from src.global_storage import global_storage
     if global_storage.verbosity >= level:
         print(message)
