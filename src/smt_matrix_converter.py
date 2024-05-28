@@ -1,5 +1,6 @@
 from src.utils import log
 
+
 class SMTToMatrixConverter:
     def __init__(self, smt_transformer):
         self.smt_transformer = smt_transformer
@@ -20,6 +21,7 @@ class SMTToMatrixConverter:
                     matrix[i][var_idx] = coef
 
         return num_constraints, num_variables, matrix
+
 
 def write_matrix_to_file(matrix, output_file):
     log(f"Writing matrix to file: {output_file}", 2)

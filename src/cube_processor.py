@@ -3,6 +3,7 @@ from src.smt_matrix_converter import SMTToMatrixConverter, write_matrix_to_file
 from src.latte_runner import run_latte_on_matrix
 from src.utils import log
 
+
 def process_cubes(cubes, mapping):
     log("Processing cubes to get final result", 1)
 

@@ -1,0 +1,7 @@
+{
+  "include": [
+    "src/**/*.py"
+  ],
+  "reportMissingImports": true,
+  "reportUndefinedVariable": true
+}

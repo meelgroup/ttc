@@ -1,6 +1,8 @@
 class GlobalStorage:
-    cnf_content = ""
-    dnf_content = ""
+    cnf_file = ""
+    dnf_file = ""
     verbosity = 0
+    # tool_list = ['cvc5', 'hall', 'latte']
+    tool_list = ['cvc5']
 
-global_storage = GlobalStorage()
+gbl = GlobalStorage()

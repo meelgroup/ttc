@@ -1,5 +1,6 @@
 from lark import Lark, Transformer
-from src.utils import log
+from .utils import log
+
 
 class SMTTransformer(Transformer):
     def __init__(self):
@@ -19,8 +20,8 @@ class SMTTransformer(Transformer):
         if op in ["<=", ">=", "="]:
             for var in right_coeffs:
                 right_coeffs[var] = -right_coeffs[var]
-            combined_coeffs = {var: left_coeffs.get(var, 0) + right_coeffs.get(var, 0) for var in set(left_coeffs) | set(right_coeffs)}
-
+            combined_coeffs = {var: left_coeffs.get(
+                var, 0) + right_coeffs.get(var, 0) for var in set(left_coeffs) | set(right_coeffs)}
             if op == "<=":
                 combined_coeffs['const'] = combined_coeffs.get('const', 0) * -1
                 self.constraints.append(combined_coeffs)
@@ -59,6 +60,7 @@ class SMTTransformer(Transformer):
     def INT(self, token):
         return int(token)
 
+
 class SMTParser:
     def __init__(self):
         self.grammar = """
@@ -73,7 +75,8 @@ class SMTParser:
             %import common.WS
             %ignore WS
         """
-        self.parser = Lark(self.grammar, parser='lalr', transformer=SMTTransformer())
+        self.parser = Lark(self.grammar, parser='lalr',
+                           transformer=SMTTransformer())
         self.transformer = self.parser.options.transformer
 
     def parse(self, input_text):
