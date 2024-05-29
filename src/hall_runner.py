@@ -4,8 +4,8 @@ from .utils import log
 from .global_storage import gbl
 
 
-def run_hall_on_cnf_file(cnf_file):
-    log("Running hall...", 2)
+def convert_cnf_to_dnf(cnf_file):
+    log("Running CNF to DNF converter...", 2)
     bin_dir = os.path.join(os.getcwd(), 'bin')
     cnftranslate_path = os.path.join(bin_dir, 'cnftranslate')
 
@@ -36,7 +36,9 @@ def run_hall_on_cnf_file(cnf_file):
 def parse_dnf_file(dnf_file):
     log("Parsing DNF content", 1)
     cubes = []
-    for line in dnf_file.splitlines():
+    dnf = open(dnf_file, 'r')
+    dnf = dnf.read()
+    for line in dnf.splitlines():
         if line.strip() and not line.startswith('p'):
             cubes.append([int(lit)
                          for lit in line.strip().split() if lit != '0'])

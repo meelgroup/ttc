@@ -9,30 +9,41 @@ class SMTTransformer(Transformer):
 
     def start(self, items):
         for item in items:
-            self.constraints.append(item)
+            if item is not None:
+                self.constraints.append(item)
         return self.constraints
 
     def expr(self, items):
-        op, left, right = items
-        left_coeffs = self.get_coefficients(left)
-        right_coeffs = self.get_coefficients(right)
+        if items[0] == 'not':
+            op, (negated_op, left, right) = items
+            if negated_op == '>=':
+                return self.expr(['<=', left, ('-', right, 1)])
+            elif negated_op == '<=':
+                return self.expr(['>=', left, ('+', right, 1)])
+            elif negated_op == '=':
+                return [self.expr(['<=', left, ('-', right, 1)]), self.expr(['>=', left, ('+', right, 1)])]
+        else:
+            op, left, right = items
+            left_coeffs = self.get_coefficients(left)
+            right_coeffs = self.get_coefficients(right)
 
-        if op in ["<=", ">=", "="]:
             for var in right_coeffs:
                 right_coeffs[var] = -right_coeffs[var]
             combined_coeffs = {var: left_coeffs.get(
                 var, 0) + right_coeffs.get(var, 0) for var in set(left_coeffs) | set(right_coeffs)}
+
             if op == "<=":
                 combined_coeffs['const'] = combined_coeffs.get('const', 0) * -1
-                self.constraints.append(combined_coeffs)
             elif op == ">=":
-                self.constraints.append(combined_coeffs)
+                pass
             elif op == "=":
-                self.constraints.append(combined_coeffs)
+                combined_coeffs_eq = combined_coeffs.copy()
                 combined_coeffs['const'] = combined_coeffs.get('const', 0) * -1
                 self.constraints.append(combined_coeffs)
+                return combined_coeffs_eq
 
-        return (op, left, right)
+            self.constraints.append(combined_coeffs)
+            return combined_coeffs
 
     def get_coefficients(self, term):
         if isinstance(term, int):
@@ -60,12 +71,18 @@ class SMTTransformer(Transformer):
     def INT(self, token):
         return int(token)
 
+    def true(self, _):
+        return None  # Ignore "true" keyword
+
 
 class SMTParser:
     def __init__(self):
         self.grammar = """
-            ?start: expr+
+            ?start: statement+
+            ?statement: expr
+                      | "true" -> true
             ?expr: "(" op term term ")"
+                 | "(" "not" expr ")"
             ?term: var
                  | INT
                  | "(" op term term ")"
@@ -81,5 +98,11 @@ class SMTParser:
 
     def parse(self, input_text):
         log("Parsing SMT input", 2)
-        self.parser.parse(input_text)
-        return self.transformer
+        return self.parser.parse(input_text)
+
+
+if __name__ == "__main__":
+    parser = SMTParser()
+    input_text = "(+ 1 2) true (<= 3 4) (not (>= y 6))"
+    result = parser.parse(input_text)
+    print(result)

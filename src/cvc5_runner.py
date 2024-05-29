@@ -1,6 +1,7 @@
 import subprocess
 from src.literal_mapping import LiteralMapping
 from src.utils import log
+from src.global_storage import gbl
 
 
 def run_cvc5_on_smt_file(smt_file):
@@ -9,7 +10,7 @@ def run_cvc5_on_smt_file(smt_file):
     result = subprocess.run(["cvc5", smt_file], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"cvc5 error: {result.stderr}")
-    log(f"cvc5 output: {result.stdout}", 3)
+    log(f"cvc5 output: {result.stdout}", 4)
     return result.stdout
 
 
@@ -28,11 +29,15 @@ def parse_cvc5_output(output):
             if '~' in parts[0]:
                 literal = -literal
             mapping.add_mapping(literal, inequality)
-        # TODO skip unsat text
-        elif line.startswith('p cnf') or (not line.startswith('c')) or (not line.startswith('u')):
+        elif line.startswith('unsat'):
+            continue
+        elif line.startswith('p cnf') or (not line.startswith('c')):
             cnf_lines.append(line)
     cnf_content = "\n".join(cnf_lines)
-    log(f"Parsed CNF content: \n{cnf_content} \n cnf end", 2)
-    # TODO save cnf to a file and store the location in cnf_location, maybe temp
-    cnf_content = "box.cnf"
-    return mapping, cnf_content
+    log(f"Parsed CNF content: \n{cnf_content} \n cnf end", 3)
+    cnf_file_name = gbl.arg.smt_file.split("/")[-1].replace(".smt2", ".cnf")
+    with open(cnf_file_name, 'w') as f:
+        f.write(cnf_content)
+    log(f"created CNF file: {cnf_file_name}")
+    log(f"CNF literal to atoms Mapping: {mapping}", 2)
+    return mapping, cnf_file_name

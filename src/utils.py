@@ -32,10 +32,6 @@ def check_existence_of_tools(tools):
                 f"{tool} is not executable in the 'bin' directory.")
 
 
-def set_verbosity(level):
-    gbl.verbosity = level
-
-
 def set_cnf_to_dnf_tool(use_hall):
     if use_hall:
         gbl.cnf_to_dnf_tool = 'hall'

@@ -1,7 +1,7 @@
-from src.smt_parser import SMTParser
-from src.smt_matrix_converter import SMTToMatrixConverter, write_matrix_to_file
-from src.latte_runner import run_latte_on_matrix
-from src.utils import log
+from .smt_parser import SMTParser
+from .smt_matrix_converter import SMTToMatrixConverter, write_matrix_to_file
+from .latte_runner import run_latte_on_matrix
+from .utils import log
 
 
 def process_cubes(cubes, mapping):
@@ -15,6 +15,7 @@ def process_cubes(cubes, mapping):
         inequalities = mapping.get_inequalities(cube)
         smt_parser = SMTParser()
         smt_transformer = smt_parser.parse("\n".join(inequalities))
+        log(f"Transformed SMT: {smt_transformer}", 3)
         converter = SMTToMatrixConverter(smt_transformer)
         matrix = converter.convert()
         write_matrix_to_file(matrix, matrix_file)
