@@ -1,4 +1,5 @@
 from .utils import log
+import numpy as np
 
 
 class SMTToMatrixConverter:
@@ -25,7 +26,9 @@ class SMTToMatrixConverter:
 
 def write_matrix_to_file(matrix, output_file):
     log(f"Writing matrix to file: {output_file}", 2)
-    num_constraints, num_variables, matrix = matrix
+    matrix = np.array([list(map(int, row.split())) for row in matrix])
+    # Get the size of the matrix
+    num_constraints, num_variables = matrix.shape
     with open(output_file, 'w') as f:
         f.write(f"{num_constraints} {num_variables}\n")
         for row in matrix:
