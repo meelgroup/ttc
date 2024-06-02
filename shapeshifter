@@ -12,6 +12,9 @@ def shapeshifter():
     check_existence_of_smt_file(args.smt_file)
     check_existence_of_tools(gbl.tool_list)
 
+    cvcrunner = CVC5Runner(args.cvc5)
+    litmap = LiteralMapping()
+
     smt_output = run_cvc5_on_smt_file(args.smt_file)
     mapping, cnf_file = parse_cvc5_output(smt_output)
 
