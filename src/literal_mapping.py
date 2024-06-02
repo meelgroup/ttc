@@ -1,7 +1,8 @@
 from lark import Lark, Transformer, v_args
-
+from .utils import log
 # TODO sum can be of multiple products
 # TODO what happens for free literals
+# TODO check well for correctness of the converted constraints
 
 grammar = """
     ?start: inequality
@@ -26,7 +27,7 @@ grammar = """
 class ExpressionTransformer(Transformer):
 
     def inequality(self, *items):
-        print(f"inequalityx: {items}")
+        log(f"inequalityx: {items}", 4)
         return {
             "type": "inequality",
             "operator": ">=",
@@ -42,7 +43,7 @@ class ExpressionTransformer(Transformer):
         }
 
     def product(self, *items):
-        print(f"product: {items}")
+        log(f"product: {items}", 4)
         return {
             "type": "product",
             # Convert the coefficient to int
@@ -51,11 +52,11 @@ class ExpressionTransformer(Transformer):
         }
 
     def number(self, item):
-        print(f"number: {item}")
+        log(f"number: {item}", 4)
         token = item[0]
         value = int(token.value)
         sign = -1 if value < 0 else 1
-        print(f"signed_number: {sign * value}")
+        log(f"signed_number: {sign * value}", 4)
         return sign * value
 
     def signed_number(self, items):
@@ -63,13 +64,8 @@ class ExpressionTransformer(Transformer):
         token = items[0]
         value = int(token.value)
         sign = -1 if value < 0 else 1
-        print(f"signed_number: {sign * value}")
+        log(f"signed_number: {sign * value}", 4)
         return sign * value
-        # return {
-        #     "type": "signed_number",
-        #     "sign": sign,
-        #     "value": abs(value)
-        # }
 
     def VAR(self, item):
         return str(item)
@@ -85,10 +81,8 @@ class LiteralMapping:
         if parsed_tree["type"] == "inequality":
             left = parsed_tree["left"]
             right = parsed_tree["right"]
-            print(f"left: {left}, right: {right}")
-            print(f"\n terms: {left['terms']}\n")
+            log(f"left: {left}, right: {right}", 4)
             lhs = left["terms"][0]
-            print(f"lhs: {lhs}")
             coefficients = [term["coefficient"] for term in lhs]
             negated_coefficients = [-c for c in coefficients]
             coefficients.append(-right)  # Append the negated constant term
@@ -100,15 +94,15 @@ class LiteralMapping:
     def add_mapping(self, literal, inequality):
         if literal in [0, 1]:
             return  # Ignore literals 0 and 1
-        print(f"now mapping literal: {literal}, inequality: {inequality}")
+        log(f"now mapping literal: {literal}, inequality: {inequality}", 3)
         parsed_tree = self.parser.parse(inequality)
         ineq, neg_ineq = self.convert_to_latte(parsed_tree)
-        print(f"latte format: {ineq} {neg_ineq}")
+        log(f"latte format: {ineq} {neg_ineq}", 3)
 
         self.mapping[literal] = ineq
         self.mapping[-literal] = neg_ineq
 
-        print(f"mapping now: {self.mapping}")
+        log(f"mapping now: {self.mapping}", 4)
 
     def get_inequalities(self, literals):
         inequalities = []
@@ -118,26 +112,8 @@ class LiteralMapping:
             inequality = self.mapping.get(lit, None)
             if inequality:
                 inequalities.append(inequality)
-        print(f"inequalities: {inequalities}")
+        log(f"inequalities: {inequalities}", 3)
         return inequalities
-
-    def normalize_inequality(self, inequality):
-        """
-        Normalize inequalities to the form Ax <= b.
-        E.g., (>= (+ (* 2 x) (* 3 y)) 11) to (<= (+ (* -2 x) (* -3 y)) -11)
-        """
-        tree = self.parser.parse(inequality)
-        return tree.children
-
-    def negate_inequality_in_latte(self, inequality):
-        """
-        Negate the inequality and keep it in the form Ax <= b.
-        E.g., (<= (+ (* 2 x) (* 3 y)) 11) to (<= (+ (* -2 x) (* -3 y)) -12)
-        """
-        tree = self.parser.parse(inequality)
-        negated_expr = self.parser.transformer.negate(tree.children[1])
-        incremented_term = self.parser.transformer.increment(tree.children[2])
-        return ['<=', negated_expr, incremented_term]
 
     def __str__(self):
         return str(self.mapping)
