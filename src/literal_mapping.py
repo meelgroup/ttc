@@ -1,20 +1,20 @@
 from lark import Lark, Transformer, v_args
 
+# TODO sum can be of multiple products
+# TODO what happens for free literals
+
 grammar = """
     ?start: inequality
 
-    inequality: "(" comparison expr expr ")"
-    comparison: GEQ
+    inequality: "(" ">=" sum number ")"
 
-    ?expr: term
-         | "(" "+" expr+ ")"
+    sum: "(" "+" product product ")"
 
-    ?term: "(" "*" SIGNED_NUMBER VAR ")"
-         | SIGNED_NUMBER
-         | VAR
+    product: "(" "*" SIGNED_NUMBER VAR ")"
 
     VAR: /[a-zA-Z]+/
-    GEQ: ">="
+
+    number: SIGNED_NUMBER
 
     %import common.SIGNED_NUMBER
     %import common.WS
@@ -22,67 +22,64 @@ grammar = """
 """
 
 
-@v_args(inline=True)
 class ExpressionTransformer(Transformer):
-    def comparison(self, token):
-        print(f"comparison: {token}")
-        return token
+    def inequality(self, items):
+        return {
+            "type": "inequality",
+            "operator": ">=",
+            "left": items[0],
+            "right": float(items[1])  # Convert the number to float here
+        }
 
-    def inequality(self, comp, expr1, expr2):
-        print(f"comp: {comp} expr1: {expr1} expr2: {expr2}")
-        if comp == ">=":
-            return ['<=', self.negate(expr1), self.negate(expr2)]
-        raise ValueError(f"Unsupported inequality type: {comp}")
+    def sum(self, items):
+        return {
+            "type": "sum",
+            "terms": items
+        }
 
-    def negate(self, value):
-        if isinstance(value, (int, float)):
-            return -value
-        elif isinstance(value, list) and value[0] == '*':
-            return ['*', self.negate(value[1]), value[2]]
-        elif isinstance(value, list) and value[0] == '+':
-            return ['+', *[self.negate(v) for v in value[1:]]]
-        raise ValueError(f"Unsupported term type: {value}")
+    def product(self, items):
+        return {
+            "type": "product",
+            "coefficient": float(items[0]),  # Convert the coefficient to float
+            "variable": items[1]
+        }
 
-    def increment(self, value):
-        if isinstance(value, (int, float)):
-            return value + 1
-        raise ValueError(f"Unsupported term type: {value}")
+    def number(self, item):
+        return - float(item[0])
 
-    def term(self, items):
-        print(f"term items: {items}")
-        if len(items) == 1:
-            return items[0]
-        else:
-            return ('*', items[0], items[1])
-
-    def SIGNED_NUMBER(self, token):
-        return float(token)
-
-    def VAR(self, token):
-        return str(token)
-
-    def expr(self, *terms):
-        if len(terms) == 1:
-            return terms[0]
-        return ['+', *terms]
+    def VAR(self, item):
+        return str(item[0])
 
 
 class LiteralMapping:
     def __init__(self):
         self.mapping = {}
-        self.parser = Lark(grammar, start='start', parser='lalr',
+        self.parser = Lark(grammar, parser='lalr',
                            transformer=ExpressionTransformer())
+
+    def convert_to_latte(self, parsed_tree):
+        if parsed_tree["type"] == "inequality":
+            left = parsed_tree["left"]
+            right = parsed_tree["right"]
+            coefficients = [term["coefficient"] for term in left["terms"]]
+            negated_coefficients = [-c for c in coefficients]
+            coefficients.append(-right)  # Append the negated constant term
+            negated_coefficients.append(right - 1)
+            ineq = " ".join(map(str, [-c for c in coefficients]))
+            neg_ineq = " ".join(map(str, [-c for c in negated_coefficients]))
+            return ineq, neg_ineq
 
     def add_mapping(self, literal, inequality):
         if literal in [0, 1]:
             return  # Ignore literals 0 and 1
         print(f"now mapping literal: {literal}, inequality: {inequality}")
-        normalized_inequality = self.normalize_inequality(inequality)
-        self.mapping[literal] = normalized_inequality
+        parsed_tree = self.parser.parse(inequality)
+        ineq, neg_ineq = self.convert_to_latte(parsed_tree)
+        print(f"latte format: {ineq} {neg_ineq}")
 
-        negated_literal = -literal
-        negated_inequality = self.negate_inequality(normalized_inequality)
-        self.mapping[negated_literal] = negated_inequality
+        self.mapping[literal] = ineq
+        self.mapping[-literal] = neg_ineq
+
         print(f"mapping now: {self.mapping}")
 
     def get_inequalities(self, literals):
@@ -104,7 +101,7 @@ class LiteralMapping:
         tree = self.parser.parse(inequality)
         return tree.children
 
-    def negate_inequality(self, inequality):
+    def negate_inequality_in_latte(self, inequality):
         """
         Negate the inequality and keep it in the form Ax <= b.
         E.g., (<= (+ (* 2 x) (* 3 y)) 11) to (<= (+ (* -2 x) (* -3 y)) -12)

@@ -1,7 +1,7 @@
 import subprocess
-from src.literal_mapping import LiteralMapping
-from src.utils import log
-from src.global_storage import gbl
+from .literal_mapping import LiteralMapping
+from .utils import log
+from .global_storage import gbl
 
 
 def run_cvc5_on_smt_file(smt_file):
