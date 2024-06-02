@@ -10,11 +10,12 @@ grammar = """
 
     sum: "(" "+" product product ")"
 
-    product: "(" "*" SIGNED_NUMBER VAR ")"
+    product: "(" "*" signed_number VAR ")"
 
     VAR: /[a-zA-Z]+/
 
     number: SIGNED_NUMBER
+    signed_number: ["(" "-"] SIGNED_NUMBER [")"]
 
     %import common.SIGNED_NUMBER
     %import common.WS
@@ -23,32 +24,55 @@ grammar = """
 
 
 class ExpressionTransformer(Transformer):
-    def inequality(self, items):
+
+    def inequality(self, *items):
+        print(f"inequalityx: {items}")
         return {
             "type": "inequality",
             "operator": ">=",
-            "left": items[0],
-            "right": float(items[1])  # Convert the number to float here
+            "left": items[0][0],
+            # Convert the number to int here
+            "right": int(items[0][1])
         }
 
-    def sum(self, items):
+    def sum(self, *items):
         return {
             "type": "sum",
-            "terms": items
+            "terms": list(items)
         }
 
-    def product(self, items):
+    def product(self, *items):
+        print(f"product: {items}")
         return {
             "type": "product",
-            "coefficient": float(items[0]),  # Convert the coefficient to float
-            "variable": items[1]
+            # Convert the coefficient to int
+            "coefficient": int(items[0][0]),
+            "variable": items[0][1]
         }
 
     def number(self, item):
-        return - float(item[0])
+        print(f"number: {item}")
+        token = item[0]
+        value = int(token.value)
+        sign = -1 if value < 0 else 1
+        print(f"signed_number: {sign * value}")
+        return sign * value
+
+    def signed_number(self, items):
+        # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
+        token = items[0]
+        value = int(token.value)
+        sign = -1 if value < 0 else 1
+        print(f"signed_number: {sign * value}")
+        return sign * value
+        # return {
+        #     "type": "signed_number",
+        #     "sign": sign,
+        #     "value": abs(value)
+        # }
 
     def VAR(self, item):
-        return str(item[0])
+        return str(item)
 
 
 class LiteralMapping:
@@ -61,7 +85,11 @@ class LiteralMapping:
         if parsed_tree["type"] == "inequality":
             left = parsed_tree["left"]
             right = parsed_tree["right"]
-            coefficients = [term["coefficient"] for term in left["terms"]]
+            print(f"left: {left}, right: {right}")
+            print(f"\n terms: {left['terms']}\n")
+            lhs = left["terms"][0]
+            print(f"lhs: {lhs}")
+            coefficients = [term["coefficient"] for term in lhs]
             negated_coefficients = [-c for c in coefficients]
             coefficients.append(-right)  # Append the negated constant term
             negated_coefficients.append(right - 1)
