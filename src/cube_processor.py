@@ -1,7 +1,5 @@
-from .smt_parser import SMTParser
-from .smt_matrix_converter import SMTToMatrixConverter, write_matrix_to_file
 from .latte_runner import run_latte_on_matrix
-from .utils import log
+from .utils import *
 
 
 def process_cubes(cubes, mapping):
