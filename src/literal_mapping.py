@@ -13,14 +13,16 @@ grammar = """
 
     sum: "(" "+" product product ")"
 
-    product: "(" "*" signed_number VAR ")"
+    product: "(" "*" number VAR ")"
 
     VAR: /[a-zA-Z]+/
 
-    number: SIGNED_NUMBER
-    signed_number: ["(" "-"] SIGNED_NUMBER [")"]
+    number: signed_number | unsigned_number
+    signed_number: "(" "-" UNSIGNED_NUMBER ")"
+    unsigned_number: UNSIGNED_NUMBER
 
     %import common.SIGNED_NUMBER
+    %import common.INT -> UNSIGNED_NUMBER
     %import common.WS
     %ignore WS
 """
@@ -70,9 +72,8 @@ class VariableCreator(Transformer):
         # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
         token = items[0]
         value = int(token.value)
-        sign = -1 if value < 0 else 1
-        log(f"signed_number: {sign * value}", 4)
-        return sign * value
+        log(f"signed_number: {-1 * value}", 4)
+        return -1 * value
 
     def VAR(self, item):
         return str(item)
@@ -87,7 +88,7 @@ class ExpressionTransformer(Transformer):
             "operator": ">=",
             "left": items[0][0],
             # Convert the number to int here
-            "right": int(items[0][1])
+            "right": items[0][1]
         }
 
     def sum(self, *items):
@@ -101,19 +102,26 @@ class ExpressionTransformer(Transformer):
         return {
             "type": "product",
             # Convert the coefficient to int
-            "coefficient": int(items[0][0]),
+            "coefficient": items[0][0],
             "variable": items[0][1]
         }
 
-    def number(self, item):
-        log(f"number: {item}", 4)
-        token = item[0]
-        value = int(token.value)
-        sign = -1 if value < 0 else 1
-        log(f"signed_number: {sign * value}", 4)
-        return sign * value
+    # def number(self, item):
+    #     print(f"number: {item}")
+    #     token = item[0]
+    #     value = int(token.value)
+    #     sign = -1 if value < 0 else 1
+    #     log(f"signed_number: {sign * value}", 4)
+    #     return sign * value
 
     def signed_number(self, items):
+        # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
+        token = items[0]
+        value = int(token.value)
+        log(f"signed_number: {-1 * value}", 4)
+        return -1 * value
+
+    def unsigned_number(self, items):
         # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
         token = items[0]
         value = int(token.value)
@@ -138,14 +146,15 @@ class LiteralMapping:
     def convert_to_latte(self, parsed_tree):
         if parsed_tree["type"] == "inequality":
             left = parsed_tree["left"]
-            right = parsed_tree["right"]
+            right = parsed_tree["right"].children[0]
             log(f"left: {left}, right: {right}", 4)
             lhs = left["terms"][0]
 
-            coefficients = [term["coefficient"] for term in lhs]
+            coefficients = [term["coefficient"].children[0] for term in lhs]
             coefficients.insert(0, -right)  # Append the negated constant term
 
-            negated_coefficients = [-term["coefficient"] for term in lhs]
+            negated_coefficients = [-term["coefficient"].children[0]
+                                    for term in lhs]
             negated_coefficients.insert(0, right - 1)
             ineq = " ".join(map(str, [c for c in coefficients]))
             neg_ineq = " ".join(map(str, [c for c in negated_coefficients]))
