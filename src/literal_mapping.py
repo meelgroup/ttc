@@ -11,9 +11,9 @@ grammar = """
 
     inequality: "(" ">=" sum number ")"
 
-    sum: "(" "+" product product ")"
+    sum: "(" "+" product+ ")"
 
-    product: "(" "*" number VAR ")"
+    product: "(" "*" number VAR ")" | VAR
 
     VAR: /[a-zA-Z]+/
 
@@ -99,11 +99,18 @@ class ExpressionTransformer(Transformer):
 
     def product(self, *items):
         log(f"product: {items}", 4)
+        # Check if it's a standalone variable
+        if len(items[0]) == 1 and isinstance(items[0][0], str):
+            print(f"items[0]: {items[0]}")
+            coefficient = 1
+            variable = items[0]
+        else:  # Otherwise, it's a product term like (* number VAR)
+            coefficient = items[0][0]
+            variable = items[0][1]
         return {
             "type": "product",
-            # Convert the coefficient to int
-            "coefficient": items[0][0],
-            "variable": items[0][1]
+            "coefficient": coefficient,
+            "variable": variable
         }
 
     # def number(self, item):
@@ -149,13 +156,21 @@ class LiteralMapping:
             right = parsed_tree["right"].children[0]
             log(f"left: {left}, right: {right}", 4)
             lhs = left["terms"][0]
+            coefficients = []
+            for term in lhs:
+                # get datatype of coefficient
+                # Check if coefficient is a list
+                if not isinstance(term["coefficient"], int):
+                    coefficient = term["coefficient"].children[0]
+                else:
+                    coefficient = term["coefficient"]
+                coefficients.append(coefficient)
+            # coefficients = [term["coefficient"].children[0] for term in lhs]
+            negated_coefficients = [-term for term in coefficients]
 
-            coefficients = [term["coefficient"].children[0] for term in lhs]
             coefficients.insert(0, -right)  # Append the negated constant term
-
-            negated_coefficients = [-term["coefficient"].children[0]
-                                    for term in lhs]
             negated_coefficients.insert(0, right - 1)
+
             ineq = " ".join(map(str, [c for c in coefficients]))
             neg_ineq = " ".join(map(str, [c for c in negated_coefficients]))
             return ineq, neg_ineq
