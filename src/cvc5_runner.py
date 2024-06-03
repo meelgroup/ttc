@@ -36,6 +36,7 @@ class CVC5Runner:
                 mapping.add_mapping(literal, inequality)
             elif line.startswith('unsat'):
                 continue
+            # TODO what is this c? This should have been handled by the first if
             elif line.startswith('p cnf') or (not line.startswith('c')):
                 cnf_lines.append(line)
         cnf_content = "\n".join(cnf_lines)

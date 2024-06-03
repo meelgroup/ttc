@@ -141,12 +141,14 @@ class LiteralMapping:
             right = parsed_tree["right"]
             log(f"left: {left}, right: {right}", 4)
             lhs = left["terms"][0]
+
             coefficients = [term["coefficient"] for term in lhs]
-            negated_coefficients = [-c for c in coefficients]
-            coefficients.append(-right)  # Append the negated constant term
-            negated_coefficients.append(right - 1)
-            ineq = " ".join(map(str, [-c for c in coefficients]))
-            neg_ineq = " ".join(map(str, [-c for c in negated_coefficients]))
+            coefficients.insert(0, -right)  # Append the negated constant term
+
+            negated_coefficients = [-term["coefficient"] for term in lhs]
+            negated_coefficients.insert(0, right - 1)
+            ineq = " ".join(map(str, [c for c in coefficients]))
+            neg_ineq = " ".join(map(str, [c for c in negated_coefficients]))
             return ineq, neg_ineq
 
     def create_constraint_matrix(self, inequalities):
@@ -157,7 +159,8 @@ class LiteralMapping:
             self.variables = self.variables.union(variable_set.variables)
 
         # create empty dataframe with columns as variables, and number of inequalities many rows
-        self.constraint_matrix = pd.DataFrame(columns=self.variables, index=range(len(inequalities)))
+        self.constraint_matrix = pd.DataFrame(
+            columns=self.variables, index=range(len(inequalities)))
 
     def add_mapping(self, literal, inequality):
         if literal in [0, 1]:
@@ -165,7 +168,7 @@ class LiteralMapping:
         log(f"now mapping literal: {literal}, inequality: {inequality}", 3)
         parsed_tree = self.parser.parse(inequality)
         ineq, neg_ineq = self.convert_to_latte(parsed_tree)
-        log(f"latte format: {ineq} {neg_ineq}", 3)
+        log(f"latte format: {ineq}\n \t neg: {neg_ineq}", 3)
 
         self.mapping[literal] = ineq
         self.mapping[-literal] = neg_ineq
