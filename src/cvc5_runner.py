@@ -7,6 +7,7 @@ from .global_storage import gbl
 class CVC5Runner:
     def __init__(self, smt_file):
         self.smt_file = smt_file
+        self.cvcoutput = None
 
     def run_cvc5_on_smt_file(self):
         log(f"Running cvc5 on {self.smt_file}", 1)
@@ -16,13 +17,13 @@ class CVC5Runner:
         if result.returncode != 0:
             raise RuntimeError(f"cvc5 error: {result.stderr}")
         log(f"cvc5 output: {result.stdout}", 4)
-        return result.stdout
+        self.cvcoutput = result.stdout
 
-    def parse_cvc5_output(self, output):
+    def parse_cvc5_output(self):
         log("Parsing cvc5 output", 1)
         mapping = LiteralMapping()
         cnf_lines = []
-        for line in output.splitlines():
+        for line in self.cvcoutput.splitlines():
             if line.startswith('c '):
                 parts = line.split(':')
                 # TODO assert that ~ could be skipped
