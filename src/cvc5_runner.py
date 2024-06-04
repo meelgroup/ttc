@@ -4,10 +4,12 @@ from .literal_mapping import LiteralMapping
 from .utils import log
 from .global_storage import gbl
 
+
 class CVC5Runner:
     def __init__(self, smt_file):
         self.smt_file = smt_file
         self.cvcoutput = None
+        self.mapping = LiteralMapping()
 
     def run_cvc5_on_smt_file(self):
         log(f"Running cvc5 on {self.smt_file}", 1)
@@ -19,9 +21,21 @@ class CVC5Runner:
         log(f"cvc5 output: {result.stdout}", 4)
         self.cvcoutput = result.stdout
 
+    def populate_variable_list_in_mapping(self):
+        log("Parsing cvc5 output to get the variable list", 1)
+        for line in self.cvcoutput.splitlines():
+            if line.startswith('c '):
+                parts = line.split(':')
+                inequality = parts[1].strip()
+                literal = int(parts[0][2:])
+                if '~' in parts[0] or literal in [0, 1]:
+                    continue
+                self.mapping.add_variable_in_constraint_matrix(inequality)
+        self.mapping.finalize_variable_matrix()
+
     def parse_cvc5_output(self):
+        self.populate_variable_list_in_mapping()
         log("Parsing cvc5 output", 1)
-        mapping = LiteralMapping()
         cnf_lines = []
         for line in self.cvcoutput.splitlines():
             if line.startswith('c '):
@@ -33,7 +47,7 @@ class CVC5Runner:
                 inequality = parts[1].strip()
                 if '~' in parts[0]:
                     literal = -literal
-                mapping.add_mapping(literal, inequality)
+                self.mapping.add_mapping(literal, inequality)
             elif line.startswith('unsat'):
                 continue
             # TODO what is this c? This should have been handled by the first if
@@ -45,5 +59,5 @@ class CVC5Runner:
         with open(cnf_file_name, 'w') as f:
             f.write(cnf_content)
         log(f"created CNF file: {cnf_file_name}")
-        log(f"CNF literal to atoms Mapping: {mapping}", 2)
-        return mapping, cnf_file_name
+        log(f"CNF literal to atoms Mapping: {self.mapping}", 2)
+        return self.mapping, cnf_file_name
