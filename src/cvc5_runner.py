@@ -26,6 +26,8 @@ class CVC5Runner:
         for line in self.cvcoutput.splitlines():
             if line.startswith('c '):
                 parts = line.split(':')
+                if '~' in parts[0]:
+                    continue
                 inequality = parts[1].strip()
                 literal = int(parts[0][2:])
                 if '~' in parts[0] or literal in [0, 1]:

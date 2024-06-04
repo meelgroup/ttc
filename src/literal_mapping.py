@@ -51,7 +51,7 @@ class VariableCreator(Transformer):
         # Check if it's a standalone variable
         if len(items[0]) == 1 and isinstance(items[0][0], str):
             coefficient = 1
-            variable = items[0]
+            variable = items[0][0]
             self.variables.add(variable)
         else:  # Otherwise, it's a product term like (* number VAR)
             coefficient = items[0][0]
@@ -91,7 +91,7 @@ class ExpressionTransformer(Transformer, list):
     def inequality(self, *items):
         log(f"inequalityx: {items}", 4)
         # self.constraints = pd.DataFrame(0, columns=self.variables, index=range(1))
-        self.constraints.loc[0, "const"] = items[0][1].children[0]
+        self.constraints.loc[0, "const"] = - items[0][1].children[0]
         return self.constraints
         # return {
         #     "type": "inequality",
