@@ -10,11 +10,11 @@ grammar = """
 
     inequality: "(" ">=" sum number ")"
 
-    sum: "(" "+" product+ ")"
+    sum: "(" "+" product+ ")" | product
 
     product: "(" "*" number VAR ")" | VAR
 
-    VAR: /[a-zA-Z]+/
+    VAR: /[a-zA-Z_|][a-zA-Z0-9_|]*/
 
     number: signed_number | unsigned_number
     signed_number: "(" "-" UNSIGNED_NUMBER ")"
