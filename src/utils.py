@@ -44,12 +44,14 @@ def set_cnf_to_dnf_tool(use_hall):
 
 def write_matrix_to_file(matrix, output_file):
     log(f"Writing matrix to file: {output_file}", 2)
-    matrix = np.array([list(map(int, row.split())) for row in matrix])
+    matrix_array = matrix.to_numpy()
+
     # Get the size of the matrix
-    num_constraints, num_variables = matrix.shape
+    num_constraints, num_variables = matrix_array.shape
+
     with open(output_file, 'w') as f:
         f.write(f"{num_constraints} {num_variables}\n")
-        for row in matrix:
+        for row in matrix_array:
             f.write(" ".join(map(str, row)) + "\n")
 
 

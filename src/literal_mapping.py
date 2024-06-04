@@ -50,7 +50,6 @@ class VariableCreator(Transformer):
         log(f"product: {items}", 4)
         # Check if it's a standalone variable
         if len(items[0]) == 1 and isinstance(items[0][0], str):
-            print(f"items[0]: {items[0]}")
             coefficient = 1
             variable = items[0]
             self.variables.add(variable)
@@ -85,20 +84,22 @@ class VariableCreator(Transformer):
 
 class ExpressionTransformer(Transformer, list):
     def __init__(self, variables):
+        self.variables = variables
         self.constraints = pd.DataFrame(0,
-            columns=variables, index=range(1))
-        self.constraints.loc[0,"x"] = 1
-        print(f"initial matrix: \n {self.constraints}")
+                                        columns=variables, index=range(1))
 
     def inequality(self, *items):
         log(f"inequalityx: {items}", 4)
-        return {
-            "type": "inequality",
-            "operator": ">=",
-            "left": items[0][0],
-            # Convert the number to int here
-            "right": items[0][1]
-        }
+        # self.constraints = pd.DataFrame(0, columns=self.variables, index=range(1))
+        self.constraints.loc[0, "const"] = items[0][1].children[0]
+        return self.constraints
+        # return {
+        #     "type": "inequality",
+        #     "operator": ">=",
+        #     "left": items[0][0],
+        #     # Convert the number to int here
+        #     "right": items[0][1]
+        # }
 
     def sum(self, *items):
         return {
@@ -110,7 +111,6 @@ class ExpressionTransformer(Transformer, list):
         log(f"product: {items}", 4)
         # Check if it's a standalone variable
         if len(items[0]) == 1 and isinstance(items[0][0], str):
-            print(f"items[0]: {items[0]}")
             coefficient = 1
             variable = items[0]
             self.constraints.loc[0, variable] = coefficient
@@ -118,7 +118,6 @@ class ExpressionTransformer(Transformer, list):
             coefficient = items[0][0]
             variable = items[0][1]
             self.constraints.loc[0, variable] = coefficient.children[0]
-        print(f"initial matrix: \n {self.constraints}")
 
         return {
             "type": "product",
@@ -152,7 +151,7 @@ class LiteralMapping:
         self.variable_creator_parser = Lark(grammar, parser='lalr',
                                             transformer=VariableCreator())
         self.parser = None  # will be initialized after we know all variables
-        self.constraints_added = 0
+        self.num_constraints_added = 0
 
     def get_variables(self, tree):
         variables = set()
@@ -197,7 +196,7 @@ class LiteralMapping:
             # coefficients = [term["coefficient"].children[0] for term in lhs]
             negated_coefficients = [-term for term in coefficients]
 
-            coefficients.insert(0, -right)  # Append the negated constant term
+            coefficients.insert(0, -right)
             negated_coefficients.insert(0, right - 1)
 
             ineq = " ".join(map(str, [c for c in coefficients]))
@@ -210,40 +209,51 @@ class LiteralMapping:
         self.num_inequalities += 1
 
     def finalize_variable_matrix(self):
-        self.variables = list(self.variables)
+        self.variables = ["const"] + list(self.variables)
         self.constraint_matrix = pd.DataFrame(
-            columns=self.variables, index=range(self.num_inequalities))
+            columns=self.variables, index=range(0))
         log(
             f"created constraint matrix of size {self.constraint_matrix.shape}", 2)
         one_constraint = pd.DataFrame(
             columns=self.variables, index=range(1))
-        self.parser = Lark(grammar, parser='lalr',
-                           transformer=ExpressionTransformer(self.variables))
+
+    def negate_constraint(self, constraint_line):
+        # negate the constraint line
+        df = constraint_line.copy()
+        df['const'] = -df['const'] - 1
+        df.loc[:, df.columns != 'const'] = -df.loc[:, df.columns != 'const']
+        return df
+
+    def copy_constraint_matrix(self, constraint_line, literal):
+        # copy constraint line to constraint matrix
+        constraint_line.index = [literal]
+        self.constraint_matrix.loc[literal] = constraint_line.iloc[0]
 
     def add_mapping(self, literal, inequality):
         if literal in [0, 1]:
             return  # Ignore literals 0 and 1
         log(f"now mapping literal: {literal}, inequality: {inequality}", 3)
-        parsed_tree = self.parser.parse(inequality)
-        ineq, neg_ineq = self.convert_to_latte(parsed_tree)
-        log(f"latte format: {ineq}\n \t neg: {neg_ineq}", 3)
+        self.parser = Lark(grammar, parser='lalr',
+                           transformer=ExpressionTransformer(self.variables))
+        inequality_line = self.parser.parse(inequality)
+        neg_inequality_line = self.negate_constraint(inequality_line)
+        # ineq, neg_ineq = self.convert_to_latte(parsed_tree)
+        self.copy_constraint_matrix(inequality_line, literal)
+        self.copy_constraint_matrix(neg_inequality_line, -literal)
+        # log(f"latte format: {ineq}\n \t neg: {neg_ineq}", 3)
 
-        self.mapping[literal] = ineq
-        self.mapping[-literal] = neg_ineq
-        self.constraints_added += 1
-
-        log(f"mapping now: {self.mapping}", 4)
+        log(f"mapping now: {self.constraint_matrix}", 4)
 
     def get_inequalities(self, literals):
         inequalities = []
         for lit in literals:
             if lit in [0, 1]:
                 continue  # Ignore literals 0 and 1
-            inequality = self.mapping.get(lit, None)
+            inequality = self.constraint_matrix.loc(lit)
             if inequality:
                 inequalities.append(inequality)
         log(f"inequalities: {inequalities}", 3)
         return inequalities
 
     def __str__(self):
-        return str(self.mapping)
+        return str(self.constraint_matrix)

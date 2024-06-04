@@ -59,5 +59,5 @@ class CVC5Runner:
         with open(cnf_file_name, 'w') as f:
             f.write(cnf_content)
         log(f"created CNF file: {cnf_file_name}")
-        log(f"CNF literal to atoms Mapping: {self.mapping}", 2)
+        log(f"CNF literal to atoms Mapping: \n{self.mapping}", 2)
         return self.mapping, cnf_file_name
