@@ -83,7 +83,12 @@ class VariableCreator(Transformer):
         return str(item)
 
 
-class ExpressionTransformer(Transformer):
+class ExpressionTransformer(Transformer, list):
+    def __init__(self, variables):
+        self.constraints = pd.DataFrame(0,
+            columns=variables, index=range(1))
+        self.constraints.loc[0,"x"] = 1
+        print(f"initial matrix: \n {self.constraints}")
 
     def inequality(self, *items):
         log(f"inequalityx: {items}", 4)
@@ -108,9 +113,13 @@ class ExpressionTransformer(Transformer):
             print(f"items[0]: {items[0]}")
             coefficient = 1
             variable = items[0]
+            self.constraints.loc[0, variable] = coefficient
         else:  # Otherwise, it's a product term like (* number VAR)
             coefficient = items[0][0]
             variable = items[0][1]
+            self.constraints.loc[0, variable] = coefficient.children[0]
+        print(f"initial matrix: \n {self.constraints}")
+
         return {
             "type": "product",
             "coefficient": coefficient,
@@ -142,8 +151,8 @@ class LiteralMapping:
         self.constraint_matrix = pd.DataFrame()
         self.variable_creator_parser = Lark(grammar, parser='lalr',
                                             transformer=VariableCreator())
-        self.parser = Lark(grammar, parser='lalr',
-                           transformer=ExpressionTransformer())
+        self.parser = None  # will be initialized after we know all variables
+        self.constraints_added = 0
 
     def get_variables(self, tree):
         variables = set()
@@ -206,6 +215,10 @@ class LiteralMapping:
             columns=self.variables, index=range(self.num_inequalities))
         log(
             f"created constraint matrix of size {self.constraint_matrix.shape}", 2)
+        one_constraint = pd.DataFrame(
+            columns=self.variables, index=range(1))
+        self.parser = Lark(grammar, parser='lalr',
+                           transformer=ExpressionTransformer(self.variables))
 
     def add_mapping(self, literal, inequality):
         if literal in [0, 1]:
@@ -217,6 +230,7 @@ class LiteralMapping:
 
         self.mapping[literal] = ineq
         self.mapping[-literal] = neg_ineq
+        self.constraints_added += 1
 
         log(f"mapping now: {self.mapping}", 4)
 
