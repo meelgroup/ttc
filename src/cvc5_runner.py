@@ -23,7 +23,16 @@ class CVC5Runner:
 
     def populate_variable_list_in_mapping(self):
         log("Parsing cvc5 output to get the variable list", 1)
+        pcnfread = False
         for line in self.cvcoutput.splitlines():
+            # if p cnf is read and now a line starts with c, then break
+            if line.startswith('p cnf'):
+                pcnfread = True
+            if line.startswith('c') and pcnfread:
+                break
+            # if line.startswith('0'):
+            #     print("line starts with 0, breaking")
+            #     break
             if line.startswith('c '):
                 parts = line.split(':')
                 if '~' in parts[0]:
@@ -39,7 +48,12 @@ class CVC5Runner:
         self.populate_variable_list_in_mapping()
         log("Parsing cvc5 output", 1)
         cnf_lines = []
+        pcnfread = False
         for line in self.cvcoutput.splitlines():
+            if line.startswith('p cnf'):
+                pcnfread = True
+            if line.startswith('c') and pcnfread:
+                break
             if line.startswith('c '):
                 parts = line.split(':')
                 # TODO assert that ~ could be skipped
@@ -50,10 +64,18 @@ class CVC5Runner:
                 if '~' in parts[0]:
                     literal = -literal
                 self.mapping.add_mapping(literal, inequality)
-            elif line.startswith('unsat'):
+            elif line.startswith('unsat') or line.startswith('sat') or line.startswith('unknown'):
                 continue
-            # TODO what is this c? This should have been handled by the first if
+            # elif line.startswith('0'):
+            #     print("line starts with 0, breaking")
+            #     break
+            # following is for the case when cvc5 outputs the CNF
             elif line.startswith('p cnf') or (not line.startswith('c')):
+                if line.startswith('0'):
+                    print("line starts with 0, breaking")
+                    break
+                    # TODO very important to check if this is correct
+                print(f"apending line: {line}")
                 cnf_lines.append(line)
         cnf_content = "\n".join(cnf_lines)
         log(f"Parsed CNF content: \n{cnf_content} \n cnf end", 3)

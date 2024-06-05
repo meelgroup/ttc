@@ -42,5 +42,5 @@ def parse_dnf_file(dnf_file):
         if line.strip() and not line.startswith('p'):
             cubes.append([int(lit)
                          for lit in line.strip().split() if lit != '0'])
-    log(f"Parsed DNF content: {cubes}", 2)
+    log(f"Parsed DNF content: {cubes}", 4)
     return cubes

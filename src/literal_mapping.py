@@ -14,7 +14,7 @@ grammar = """
 
     product: "(" "*" number VAR ")" | VAR
 
-    VAR: /[a-zA-Z_|][a-zA-Z0-9_|]*/
+    VAR: /[a-zA-Z_|@][a-zA-Z0-9_|@]*/
 
     number: signed_number | unsigned_number
     signed_number: "(" "-" UNSIGNED_NUMBER ")"
