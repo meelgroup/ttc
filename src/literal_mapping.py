@@ -14,7 +14,7 @@ grammar = """
 
     product: "(" "*" number VAR ")" | VAR
 
-    VAR: /[a-zA-Z_|@][a-zA-Z0-9_|@]*/
+    VAR: /[a-zA-Z|._~#@][a-zA-Z0-9|._~#@]*/
 
     number: signed_number | unsigned_number
     signed_number: "(" "-" UNSIGNED_NUMBER ")"
@@ -32,7 +32,6 @@ class VariableCreator(Transformer):
         self.variables = set()
 
     def inequality(self, *items):
-        log(f"inequalityx: {items}", 4)
         return {
             "type": "inequality",
             "operator": ">=",
@@ -47,7 +46,6 @@ class VariableCreator(Transformer):
         }
 
     def product(self, *items):
-        log(f"product: {items}", 4)
         # Check if it's a standalone variable
         if len(items[0]) == 1 and isinstance(items[0][0], str):
             coefficient = 1
@@ -67,7 +65,6 @@ class VariableCreator(Transformer):
         # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
         token = items[0]
         value = int(token.value)
-        log(f"signed_number: {-1 * value}", 4)
         return -1 * value
 
     def unsigned_number(self, items):
@@ -75,7 +72,6 @@ class VariableCreator(Transformer):
         token = items[0]
         value = int(token.value)
         sign = -1 if value < 0 else 1
-        log(f"signed_number: {sign * value}", 4)
         return sign * value
 
     def VAR(self, item):
@@ -89,7 +85,6 @@ class ExpressionTransformer(Transformer, list):
                                         columns=variables, index=range(1))
 
     def inequality(self, *items):
-        log(f"inequalityx: {items}", 4)
         # self.constraints = pd.DataFrame(0, columns=self.variables, index=range(1))
         self.constraints.loc[0, "const"] = - items[0][1].children[0]
         return self.constraints
@@ -101,7 +96,6 @@ class ExpressionTransformer(Transformer, list):
         }
 
     def product(self, *items):
-        log(f"product: {items}", 4)
         # Check if it's a standalone variable
         if len(items[0]) == 1 and isinstance(items[0][0], str):
             coefficient = 1
@@ -121,13 +115,12 @@ class ExpressionTransformer(Transformer, list):
     def signed_number(self, items):
         token = items[0]
         value = int(token.value)
-        log(f"signed_number: {-1 * value}", 4)
+        (f"signed_number: {-1 * value}", 4)
         return -1 * value
 
     def unsigned_number(self, items):
         token = items[0]
         value = int(token.value)
-        log(f"unsigned_number: {value}", 4)
         return value
 
     def VAR(self, item):
@@ -179,6 +172,7 @@ class LiteralMapping:
             columns=self.variables, index=range(0))
         log(
             f"created constraint matrix of size {self.constraint_matrix.shape}", 2)
+        log(f"variables: {self.variables}", 3)
         one_constraint = pd.DataFrame(
             columns=self.variables, index=range(1))
 
@@ -196,15 +190,12 @@ class LiteralMapping:
     def add_mapping(self, literal, inequality):
         if literal in [0, 1]:
             return
-        log(f"now mapping literal: {literal}, inequality: {inequality}", 3)
         self.parser = Lark(grammar, parser='lalr',
                            transformer=ExpressionTransformer(self.variables))
         inequality_line = self.parser.parse(inequality)
         neg_inequality_line = self.negate_constraint(inequality_line)
         self.copy_constraint_matrix(inequality_line, literal)
         self.copy_constraint_matrix(neg_inequality_line, -literal)
-
-        log(f"mapping now: {self.constraint_matrix}", 4)
 
     def get_inequalities(self, literals):
         inequalities = []

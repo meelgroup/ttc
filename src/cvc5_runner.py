@@ -52,30 +52,22 @@ class CVC5Runner:
         for line in self.cvcoutput.splitlines():
             if line.startswith('p cnf'):
                 pcnfread = True
-            if line.startswith('c') and pcnfread:
-                break
-            if line.startswith('c '):
+                cnf_lines.append(line)
+            elif line.startswith('c'):
+                if pcnfread:
+                    log(
+                        "line starts with c and pcnfread is true, no more atom parsing needed, breaking", 5)
+                    break
                 parts = line.split(':')
                 # TODO assert that ~ could be skipped
                 if '~' in parts[0]:
                     continue
                 literal = int(parts[0][2:])
                 inequality = parts[1].strip()
-                if '~' in parts[0]:
-                    literal = -literal
                 self.mapping.add_mapping(literal, inequality)
             elif line.startswith('unsat') or line.startswith('sat') or line.startswith('unknown'):
                 continue
-            # elif line.startswith('0'):
-            #     print("line starts with 0, breaking")
-            #     break
-            # following is for the case when cvc5 outputs the CNF
-            elif line.startswith('p cnf') or (not line.startswith('c')):
-                if line.startswith('0'):
-                    print("line starts with 0, breaking")
-                    break
-                    # TODO very important to check if this is correct
-                print(f"apending line: {line}")
+            elif not line.startswith('c') and not line.startswith('0'):
                 cnf_lines.append(line)
         cnf_content = "\n".join(cnf_lines)
         log(f"Parsed CNF content: \n{cnf_content} \n cnf end", 3)
