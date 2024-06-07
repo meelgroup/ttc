@@ -14,7 +14,10 @@ class CVC5Runner:
     def run_cvc5_on_smt_file(self):
         log(f"Running cvc5 on {self.smt_file}", 1)
         # RUN my version of CVC5 which outputs mapping
-        result = subprocess.run(["cvc5", self.smt_file],
+        bin_dir = os.path.join(os.getcwd(), 'bin')
+        cvc_path = os.path.join(bin_dir, 'cvc5')
+
+        result = subprocess.run([cvc_path, self.smt_file],
                                 capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(f"cvc5 error: {result.stderr}")
@@ -22,6 +25,7 @@ class CVC5Runner:
         self.cvcoutput = result.stdout
 
     def populate_variable_list_in_mapping(self):
+        forbidden_atom_starts = ['not', 'let', 'and', 'or']
         log("Parsing cvc5 output to get the variable list", 1)
         pcnfread = False
         for line in self.cvcoutput.splitlines():
@@ -37,16 +41,20 @@ class CVC5Runner:
                 parts = line.split(':')
                 if '~' in parts[0]:
                     continue
+                if any([x in parts[1] for x in forbidden_atom_starts]):
+                    continue
                 inequality = parts[1].strip()
                 literal = int(parts[0][2:])
                 if '~' in parts[0] or literal in [0, 1]:
                     continue
+                log(f"adding variable: {inequality} with literal: {literal}", 5)
                 self.mapping.add_variable_in_constraint_matrix(inequality)
         self.mapping.finalize_variable_matrix()
 
     def parse_cvc5_output(self):
         self.populate_variable_list_in_mapping()
         log("Parsing cvc5 output", 1)
+        forbidden_atom_starts = ['not', 'let', 'and', 'or']
         cnf_lines = []
         pcnfread = False
         for line in self.cvcoutput.splitlines():
@@ -61,6 +69,10 @@ class CVC5Runner:
                 parts = line.split(':')
                 # TODO assert that ~ could be skipped
                 if '~' in parts[0]:
+                    continue
+                # if parts[1] contains forbidden_atom_starts, then skip
+                if any([x in parts[1] for x in forbidden_atom_starts]):
+                    log(f"skipping atom from parsing: {line} ")
                     continue
                 literal = int(parts[0][2:])
                 inequality = parts[1].strip()

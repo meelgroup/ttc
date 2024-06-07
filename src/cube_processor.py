@@ -1,7 +1,7 @@
 from .latte_runner import run_latte_on_matrix
 from .utils import *
 import pandas as pd
-
+import sys
 
 def process_cubes(cubes, mapping):
     log("Processing cubes to get final result", 1)
@@ -13,6 +13,10 @@ def process_cubes(cubes, mapping):
         for literal in cube:
             if literal in [0, 1]:
                 continue
+            # if lit is not in constraint_matrix, then show warning and exit
+            if literal not in mapping.constraint_matrix.index:
+                log(f"Literal {literal} not found in constraint matrix", 0)
+                sys.exit(1)
             dfd = dfd._append(mapping.constraint_matrix.loc[literal])
         # drop index
         write_matrix_to_file(dfd, matrix_file)
