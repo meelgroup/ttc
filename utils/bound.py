@@ -1,5 +1,7 @@
 import argparse
 import z3
+import os
+import random
 
 
 def parse_variables(smt_file_content):
@@ -44,21 +46,52 @@ def process_file(input_file, output_file, bound):
         f.write(smt_content)
 
 
+# def process_file(input_file, output_file, bound):
+#     # Placeholder for file processing logic
+#     with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
+#         for line in infile:
+#             outfile.write(line.replace('VAR_BOUND', str(bound)))
+#     print(f"Processed file saved as {output_file}")
+
+
+def process_list(file_list, bounds):
+    bounded_folder = 'bounded'
+    os.makedirs(bounded_folder, exist_ok=True)
+
+    if len(file_list) > 10:
+        file_list = random.sample(file_list, 10)
+
+    for file in file_list:
+        for bound in bounds:
+            output_file = os.path.join(
+                bounded_folder, f"{os.path.basename(file)}_bounded_{bound}.smt2")
+            process_file(file, output_file, bound)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Add constraints to SMT-LIB file.')
-    parser.add_argument('--bound', type=int, required=True,
+    parser.add_argument('--bound', type=int,
                         help='The bound for the variables.')
-    parser.add_argument('filename', type=str, help='The input SMT-LIB file.')
+    parser.add_argument('--list', type=str,
+                        help='File containing list of SMT-LIB files.')
+    parser.add_argument('filename', type=str, nargs='?',
+                        help='The input SMT-LIB file.')
 
     args = parser.parse_args()
 
-    input_file = args.filename
-    bound = args.bound
-    output_file = f"{input_file}_bounded_{bound}.smt2"
-
-    process_file(input_file, output_file, bound)
-    print(f"Processed file saved as {output_file}")
+    if args.list:
+        with open(args.list, 'r') as list_file:
+            file_list = [line.strip() for line in list_file if line.strip()]
+        bounds = [5, 10, 20, 30, 50, 60, 100]
+        process_list(file_list, bounds)
+    elif args.filename and args.bound is not None:
+        input_file = args.filename
+        bound = args.bound
+        output_file = f"{input_file}_bounded_{bound}.smt2"
+        process_file(input_file, output_file, bound)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':
