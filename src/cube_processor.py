@@ -3,6 +3,7 @@ from .utils import *
 import pandas as pd
 import sys
 
+
 def process_cubes(cubes, mapping):
     log("Processing cubes to get final result", 1)
     final_sum = 0
@@ -11,7 +12,7 @@ def process_cubes(cubes, mapping):
         matrix_file = "matrix.tmp"
         dfd = pd.DataFrame(columns=mapping.constraint_matrix.columns)
         for literal in cube:
-            if literal in [0, 1]:
+            if literal in [0, 1, -2]:
                 continue
             # if lit is not in constraint_matrix, then show warning and exit
             if literal not in mapping.constraint_matrix.index:
