@@ -16,8 +16,8 @@ def process_cubes(cubes, mapping):
                 continue
             # if lit is not in constraint_matrix, then show warning and exit
             if literal not in mapping.constraint_matrix.index:
-                log(f"Literal {literal} not found in constraint matrix", 0)
-                sys.exit(1)
+                log(f"Literal {literal} not found in constraint matrix", 3)
+                continue
             dfd = dfd._append(mapping.constraint_matrix.loc[literal])
         # drop index
         write_matrix_to_file(dfd, matrix_file)
