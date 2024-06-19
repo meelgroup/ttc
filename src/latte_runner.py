@@ -47,13 +47,18 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
             stderr = ''.join(stderr_lines)
 
             # Check for specific error message in stdout or stderr
-            error_message = "Empty polytope or unbounded polytope!"
+            error_message = "is unbounded"
+            empty_polytope_message = "Empty polytope or unbounded polytope!"
             if error_message in stdout or error_message in stderr:
-                print(error_message)
+                print(
+                    "Unbounded polytope!\n TODO: Make sure this polytope is not empty\n")
                 sys.exit(0)
-
-            # Return the last line of the stdout which contains the count
-            count = stdout.strip().split("\n")[-1]
+            if empty_polytope_message in stdout or empty_polytope_message in stderr:
+                print("Empty polytope!\n")
+                count = 0
+            else:
+                # Return the last line of the stdout which contains the count
+                count = stdout.strip().split("\n")[-1]
             return int(count)
 
     except subprocess.CalledProcessError as e:

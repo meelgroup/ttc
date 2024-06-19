@@ -32,6 +32,34 @@ def convert_cnf_to_dnf(cnf_file):
 
     return dnf_file
 
+def convert_aig_to_dnf(aig_file):
+    log("Running AIG to DNF converter...", 2)
+    bin_dir = os.path.join(os.getcwd(), 'bin')
+    cnftranslate_path = os.path.join(bin_dir, 'hall_tool')
+
+    dnf_file = aig_file[:-4] + ".aag"
+
+    command = [cnftranslate_path, aig_file, "/general/print_enumer 1"]
+
+    try:
+        result = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        if gbl.verbosity > 3:
+            print("Output from cnftranslate:")
+            print(result.stdout.decode())
+            print("Error from cnftranslate:")
+            print(result.stderr.decode())
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"Error occurred while running cnftranslate: {e.stderr.decode()}")
+    # if gbl.verbosity >= 2 then print contents of the file dnf_file here
+    if gbl.verbosity > 2:
+        print(f"Contents of {dnf_file}:")
+        with open(dnf_file, 'r') as f:
+            print(f.read())
+
+    return dnf_file
+
 
 def parse_dnf_file(dnf_file):
     log("Parsing DNF content", 1)

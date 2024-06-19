@@ -12,6 +12,7 @@ class GlobalStorage:
     def initialize(self, _arg):
         self.arg = _arg
         self.verbosity = _arg.verbosity
+        self.filename = _arg.smt_file
 
 
 gbl = GlobalStorage()

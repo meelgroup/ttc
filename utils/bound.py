@@ -2,6 +2,10 @@ import argparse
 import z3
 import os
 import random
+import multiprocessing
+import time
+
+timeout_for_process_file = 10
 
 
 def parse_variables(smt_file_content):
@@ -19,6 +23,25 @@ def parse_variables(smt_file_content):
                 variables.add(var.decl().name())
 
     return list(variables)
+
+
+def run_with_timeout(func, timeout, *args, **kwargs):
+    def wrapper(queue, *args, **kwargs):
+        result = func(*args, **kwargs)
+        queue.put(result)
+
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(
+        target=wrapper, args=(queue, *args), kwargs=kwargs)
+    process.start()
+    process.join(timeout)
+
+    if process.is_alive():
+        process.terminate()
+        process.join()
+        return "Function timed out"
+    else:
+        return queue.get()
 
 
 def add_constraints(variables, bound):
@@ -58,14 +81,24 @@ def process_list(file_list, bounds):
     bounded_folder = 'bounded'
     os.makedirs(bounded_folder, exist_ok=True)
 
-    if len(file_list) > 10:
-        file_list = random.sample(file_list, 10)
+    if len(file_list) > 1500:
+        file_list = random.sample(file_list, 1500)
 
     for file in file_list:
         for bound in bounds:
             output_file = os.path.join(
                 bounded_folder, f"{os.path.basename(file)}_bounded_{bound}.smt2")
-            process_file(file, output_file, bound)
+            if os.path.exists(output_file):
+                print(f"File {output_file} already exists. Skipping...")
+                continue
+
+            # run process_file function with maximum 5 seconds timeout
+            run_with_timeout(process_file, 10, file, output_file, bound)
+            # process_file(file, output_file, bound)
+            if os.path.exists(output_file):
+                print(f"Processed file saved as {output_file}")
+            else:
+                print(f"Failed to process file {file} with bound {bound}")
 
 
 def main():
@@ -83,7 +116,9 @@ def main():
     if args.list:
         with open(args.list, 'r') as list_file:
             file_list = [line.strip() for line in list_file if line.strip()]
+        print(f"Processing {len(file_list)} files...")
         bounds = [5, 10, 20, 30, 50, 60, 100]
+        bounds = [10, 50]
         process_list(file_list, bounds)
     elif args.filename and args.bound is not None:
         input_file = args.filename

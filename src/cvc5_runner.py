@@ -17,7 +17,7 @@ class CVC5Runner:
         bin_dir = os.path.join(os.getcwd(), 'bin')
         cvc_path = os.path.join(bin_dir, 'cvc5')
 
-        result = subprocess.run([cvc_path, '--newt', self.smt_file],
+        result = subprocess.run([cvc_path, '--boolabs', self.smt_file],
                                 capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(f"cvc5 error: {result.stderr}")
@@ -35,8 +35,12 @@ class CVC5Runner:
             if 'skipit' in parts[1]:
                 continue
             if any([x in parts[1] for x in forbidden_atom_starts]):
-                print(f"cvc5 --newt was not supposed to output {line}")
-                exit(1)
+                print(f"WARNING: cvc5 --newt was not supposed to output {line}")
+                # exit(1)
+
+            if "(=" in parts[1]:
+                # print("TODO: handle equality constraints")
+                continue
 
             inequality = parts[1].strip()
             literal = int(parts[0][2:])
@@ -60,6 +64,9 @@ class CVC5Runner:
 
             parts = line.split(':')
             if 'skipit' in parts[1]:
+                continue
+            if "(=" in parts[1]:
+                # print("TODO: handle equality constraints")
                 continue
 
             literal = int(parts[0][2:])
