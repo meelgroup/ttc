@@ -13,8 +13,11 @@ class CVC5Runner:
 
     def run_cvc5_on_smt_file(self):
         log(f"Running cvc5 on {self.smt_file}", 1)
-        # RUN my version of CVC5 which outputs mapping
-        bin_dir = os.path.join(os.getcwd(), 'bin')
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        bin_dir = os.path.join(parent_dir, 'bin')
+        print(f"bin_dir: {bin_dir}")
+        # bin_dir = os.path.join(os.getcwd(), 'bin')
         cvc_path = os.path.join(bin_dir, 'cvc5')
 
         result = subprocess.run([cvc_path, '--boolabs', self.smt_file],
@@ -28,10 +31,15 @@ class CVC5Runner:
         forbidden_atom_starts = ['not', 'let', 'and', 'or']
         log("Parsing cvc5 output to get the variable list", 1)
         pcnfread = False
+        if self.cvcoutput is None:
+            raise ValueError(
+                "cvcoutput is None, ensure run_cvc5_on_smt_file() is called before parsing.")
         for line in self.cvcoutput.splitlines():
-            if not line.startswith('c '):
+            print(f"cvc5 output line: {line}")
+            if not line.startswith('c ') or line.startswith('c end') or line.startswith('c AIG'):
                 continue
             parts = line.split(':')
+            print(f"parts: {parts}")
             if 'skipit' in parts[1]:
                 continue
             if any([x in parts[1] for x in forbidden_atom_starts]):
@@ -58,8 +66,8 @@ class CVC5Runner:
         cnf_file_name = self.smt_file.split("/")[-1]
         cnf_file_name = cnf_file_name[:cnf_file_name.rfind('.')] + '.cnf'
 
-        for line in self.cvcoutput.splitlines():
-            if not line.startswith('c'):
+        for line in self.cvcoutput.splitlines():  # type: ignore
+            if not line.startswith('c') or line.startswith('c end') or line.startswith('c AIG'):
                 continue
 
             parts = line.split(':')

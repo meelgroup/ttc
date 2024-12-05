@@ -55,6 +55,13 @@ def add_constraints(variables, bound):
 
 def process_file(input_file, output_file, bound):
     """Process the input SMT-LIB file and write the bounded constraints to the output file."""
+    if not input_file.endswith('.smt2'):
+        input_file += '.smt2'
+        input_file = "QF_LIA_" + input_file
+    # if input file does not exist, return
+    if not os.path.exists(input_file):
+        print(f"File {input_file} does not exist.")
+        return
     with open(input_file, 'r') as f:
         smt_content = f.read()
 
@@ -118,7 +125,7 @@ def main():
             file_list = [line.strip() for line in list_file if line.strip()]
         print(f"Processing {len(file_list)} files...")
         bounds = [5, 10, 20, 30, 50, 60, 100]
-        bounds = [10, 50]
+        bounds = [10, 50, 100]
         process_list(file_list, bounds)
     elif args.filename and args.bound is not None:
         input_file = args.filename

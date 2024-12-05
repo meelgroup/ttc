@@ -10,10 +10,14 @@ def process_cubes(cubes, mapping):
     final_sum = 0
     for i, cube in enumerate(cubes):
         log(f"Processing cube {i+1}/{len(cubes)}: {cube}", 2)
-        matrix_file = "matrix.tmp"
+        # matrix_file = "matrix.tmp"
         latte_file_name = gbl.filename.split("/")[-1]
         latte_file_name = latte_file_name[:latte_file_name.rfind(
             '.')] + '.latte'
+        
+        # TODO good file name is not often accepted by latte!!
+        # e.g., prime-cone_prime_cone_sat_5
+        latte_file_name = "matrix.tmp"
         dfd = pd.DataFrame(columns=mapping.constraint_matrix.columns)
         for literal in cube:
             if literal in [0, 1, -2]:

@@ -2,7 +2,7 @@
 from src import *
 
 
-def shapeshifter():
+def ttc():
     parser = get_arg_parser()
     args = parser.parse_args()
 
@@ -26,4 +26,4 @@ def shapeshifter():
 
 
 if __name__ == "__main__":
-    shapeshifter()
+    ttc()

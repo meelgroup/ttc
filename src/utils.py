@@ -23,7 +23,13 @@ def check_existence_of_smt_file(smt_file):
 
 
 def check_existence_of_tools(tools):
-    bin_dir = os.path.join(os.getcwd(), 'bin')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Move one level up
+    parent_dir = os.path.dirname(script_dir)
+    # Replace cwd to the parent directory
+    bin_dir = os.path.join(parent_dir, 'bin')
+    print(f"bin_dir: {bin_dir}")
+    # bin_dir = os.path.join(os.getcwd(), 'bin')
     for tool in tools:
         tool_path = os.path.join(bin_dir, tool)
         if not os.path.isfile(tool_path):
@@ -36,7 +42,7 @@ def check_existence_of_tools(tools):
 def set_cnf_to_dnf_tool(use_hall):
     if use_hall:
         gbl.cnf_to_dnf_tool = 'hall'
-        gbl.tool_list.append('./bin/hall')
+        gbl.tool_list.append('hall_tool')
     else:
         gbl.cnf_to_dnf_tool = 'cnftranslate'
         gbl.tool_list.append('cnftranslate')
