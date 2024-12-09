@@ -12,8 +12,9 @@ def get_arg_parser():
                         help='Path to the SMT-LIB 2 file.')
     parser.add_argument('-v', '--verbosity', type=int,
                         default=0, help='Set verbosity level.')
-    parser.add_argument('-hall', '--hall', type=bool, default=False,
+    parser.add_argument("--hall", action="store_true",
                         help='Use the HALL tool to convert CNF to DNF, default is Karnaugh map extension.')
+
     return parser
 
 

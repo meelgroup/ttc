@@ -65,6 +65,7 @@ class CVC5Runner:
         # cnffilename replace the last.smth2 with .cnf
         cnf_file_name = self.smt_file.split("/")[-1]
         cnf_file_name = cnf_file_name[:cnf_file_name.rfind('.')] + '.cnf'
+        aig_file_name = cnf_file_name[:cnf_file_name.rfind('.')] + '.aag'
 
         for line in self.cvcoutput.splitlines():  # type: ignore
             if not line.startswith('c') or line.startswith('c end') or line.startswith('c AIG'):
@@ -82,6 +83,17 @@ class CVC5Runner:
             self.mapping.add_mapping(literal, inequality)
         #
 
-        log(f"created CNF file: {cnf_file_name}")
-        log(f"CNF literal to atoms Mapping: \n{self.mapping}", 2)
-        return self.mapping, cnf_file_name
+        if gbl.dnfizer == "hall":
+            log(f"created AIG file: {aig_file_name}")
+            log(f"CNF literal to atoms Mapping: \n{self.mapping}", 2)
+        else:
+            log(f"created CNF file: {cnf_file_name}")
+            log(f"CNF literal to atoms Mapping: \n{self.mapping}", 2)
+            aig_file_name = cnf_file_name
+            # print("Running HALL")
+            # dnf_file = convert_aig_to_dnf(aig_file_name)
+            # cubes = parse_dnf_file(dnf_file)
+            # print(f"DNF cubes: {cubes}")
+        print(f"parsed cvc5 output: {aig_file_name}")
+
+        return self.mapping, aig_file_name

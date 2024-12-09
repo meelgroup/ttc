@@ -6,6 +6,7 @@ class GlobalStorage:
     verbosity = 0
     # tool_list = ['cvc5', 'hall', 'latte']
     tool_list = ['cvc5']
+    dnfizer = "hall"
     arg = None
 
     # defining the class constructor
@@ -13,6 +14,9 @@ class GlobalStorage:
         self.arg = _arg
         self.verbosity = _arg.verbosity
         self.filename = _arg.smt_file
+        if not _arg.hall:
+            print("setting cnftranslate as dnfizer")
+            self.dnfizer = "cnftranslate"
 
 
 gbl = GlobalStorage()
