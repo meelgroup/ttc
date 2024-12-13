@@ -31,6 +31,9 @@ typedef Eigen::Matrix<NT,Eigen::Dynamic,Eigen::Dynamic> MT;
 typedef Cartesian<NT>    Kernel;
 typedef typename Kernel::Point    Point;
 typedef HPolytope<Point> Hpolytope;
+typedef Eigen::Matrix<NT,Eigen::Dynamic,Eigen::Dynamic> MT;
+typedef Eigen::Matrix<NT,Eigen::Dynamic,1> VT;
+
 
 template <typename WalkType>
 void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, unsigned int num_threads, MT &samples) {
@@ -40,11 +43,12 @@ void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, 
 
     // Compute the starting point (inner ball center)
     Point p = polytope.ComputeInnerBall().first;
-    std::cout << "Inner ball center: " ;
-    for (int i = 0; i < p.getCoefficients().rows(); i++) {
+    std::cout << "Inner ball center: (dim =" << p.dimension() - 1 <<  ")"  << std::endl;
+    for (int i = 0; i < p.dimension() - 1; i++) {
         std::cout << p.getCoefficients()(i) << " ";
     }
-    p.print();
+    std::cout << std::endl;
+    std::cout << "Inner ball radius: " << polytope.ComputeInnerBall().second << std::endl;
     // print p
 
     // List to store random points
@@ -55,14 +59,17 @@ void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, 
     RandomPointGenerator::apply(polytope, p, N, walk_len, num_threads, randPoints, push_back_policy, rng);
 
     // Prepare the samples matrix
-    unsigned int d = polytope.dimension();  // Dimension of the polytope
-    samples.resize(d, N);  // Resize the matrix to store all samples
+    unsigned int d = polytope.dimension() - 1;  // Dimension of the polytope
+
+    // MT samples(d, N);
     unsigned int jj = 0;
 
-    // Store the generated points in the samples matrix
-    for (const auto &rp : randPoints) {
-        samples.col(jj++) = rp.getCoefficients();
+    for (typename std::list<Point>::iterator rpit = randPoints.begin(); rpit!=randPoints.end(); rpit++, jj++)
+    {
+        samples.col(jj) = (*rpit).getCoefficients();
+        std::cout << "Sampled point: " << (*rpit).getCoefficients()(0) << " " << (*rpit).getCoefficients()(1) << std::endl;
     }
+
 }
 
 
@@ -76,12 +83,15 @@ Hpolytope loadPolytope(const std::string &filename) {
     }
 
     unsigned int m, n;
-    file >> m >> n; // Number of inequalities and variables
+    file >> m >> n; // h-poytope size (m x n) -- number of inequalities and variables +1
 
-    Eigen::MatrixXd matrix(m, n + 1);
+    Eigen::MatrixXd matrix(m, n);
     for (unsigned int i = 0; i < m; ++i) {
-        for (unsigned int j = 0; j < n + 1; ++j) {
-            file >> matrix(i, j);
+        for (unsigned int j = 0; j < n ; ++j) {
+            if (j == 0)
+                file >> matrix(i, j);
+            else
+                file >> matrix(i, j);
         }
     }
 
@@ -109,18 +119,27 @@ int main(int argc, char *argv[]) {
         Hpolytope polytope = loadPolytope(input_file);
 
         // Sampling parameters
-        unsigned int walk_len = 5;
-        unsigned int num_threads = 5;
+        unsigned int walk_len = 100;
+        unsigned int num_threads = 1;
 
         // Perform sampling
         MT samples;
         typedef BRDHRWalk_multithread WalkType;
+
         samplePolytope<WalkType>(polytope, walk_len, num_samples, num_threads, samples);
         // get size of samples
         std::cout << "Sample size: " << samples.rows() << " x " << samples.cols() << std::endl;
 
+        std::cout << "Sampled points:\n" ;
+
         // Output the samples
-        // std::cout << "Sampled points:\n" << samples << std::endl;
+        for (int i = 0; i < samples.rows(); i++) {
+            for (int j = 0; j < samples.cols(); j++) {
+                std::cout << samples(i, j) << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "Sampled points:\n" << samples << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;

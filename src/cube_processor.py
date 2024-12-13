@@ -1,4 +1,5 @@
 from .latte_runner import run_latte_on_matrix
+from .decompose_polytope import decompose_polytope
 from .utils import *
 import pandas as pd
 import sys
@@ -8,13 +9,14 @@ from .global_storage import gbl
 def process_cubes(cubes, mapping):
     log("Processing cubes to get final result", 1)
     final_sum = 0
+    result = 0
     for i, cube in enumerate(cubes):
         log(f"Processing cube {i+1}/{len(cubes)}: {cube}", 2)
         # matrix_file = "matrix.tmp"
         latte_file_name = gbl.filename.split("/")[-1]
         latte_file_name = latte_file_name[:latte_file_name.rfind(
             '.')] + '.latte'
-        
+
         # TODO good file name is not often accepted by latte!!
         # e.g., prime-cone_prime_cone_sat_5
         latte_file_name = "matrix.tmp"
@@ -26,10 +28,14 @@ def process_cubes(cubes, mapping):
             if literal not in mapping.constraint_matrix.index:
                 log(f"Literal {literal} not found in constraint matrix", 3)
                 continue
-            dfd = dfd._append(mapping.constraint_matrix.loc[literal])
+            dfd = pd.concat([dfd, mapping.constraint_matrix.loc[[literal]]])
         # drop index
         write_matrix_to_file(dfd, latte_file_name)
-        result = run_latte_on_matrix(latte_file_name)
+        if gbl.decompose_lim > 0:
+            decompose_polytope(latte_file_name, gbl.decompose_lim)
+            exit(0)
+        else:
+            result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)
         final_sum += result
 

@@ -14,6 +14,8 @@ def get_arg_parser():
                         default=0, help='Set verbosity level.')
     parser.add_argument("--hall", action="store_true",
                         help='Use the HALL tool to convert CNF to DNF, default is Karnaugh map extension.')
+    parser.add_argument("-d", "--decomposelim", type=int, default=0,
+                        help='Limit on the number of decompositions.')
 
     return parser
 

@@ -4,6 +4,7 @@ class GlobalStorage:
     filename = ""
     matrix_file = ""
     verbosity = 0
+    decompose_lim = 0
     # tool_list = ['cvc5', 'hall', 'latte']
     tool_list = ['cvc5']
     dnfizer = "hall"
@@ -17,6 +18,7 @@ class GlobalStorage:
         if not _arg.hall:
             print("setting cnftranslate as dnfizer")
             self.dnfizer = "cnftranslate"
+        self.decompose_lim = _arg.decomposelim
 
 
 gbl = GlobalStorage()
