@@ -159,18 +159,26 @@ def generate_polytope_files(input_file, dimensions, output_dir):
         added_constraints = []
         new_lines = original_lines.copy()
 
+        # Update the first line to reflect the new number of constraints
+        first_line_parts = new_lines[0].split()
+        original_constraint_count = int(first_line_parts[0])
+        total_constraints = original_constraint_count + len(combination)
+        first_line_parts[0] = str(total_constraints)
+        new_lines[0] = " ".join(first_line_parts) + "\n"
+
         for i, value in enumerate(combination):
             dimension = dimensions[i][0]
             # Create the constraint line: value as constant, coefficients for x, y, z
             coefficients = ["-1" if j + 1 ==
                             dimension else "0" for j in range(len(dimensions))]
-            constraint_line = f"{value} " + " ".join(coefficients) + "\n"
-            added_constraints.append(len(new_lines) + 1)
+            val = int(value)
+            constraint_line = f"{val} " + " ".join(coefficients) + "\n"
+            added_constraints.append(len(new_lines))
             new_lines.append(constraint_line)
 
         # Add linearity information at the end
-        linearity_line = f"linearity {len(added_constraints)} " + \
-            " ".join(map(str, added_constraints)) + "\n"
+        linearity_line = f"linearity {len(added_constraints)} " + " ".join(
+            map(str, [num for num in added_constraints])) + "\n"
         new_lines.append(linearity_line)
 
         # Write to a new file
