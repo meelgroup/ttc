@@ -32,8 +32,12 @@ def process_cubes(cubes, mapping):
         # drop index
         write_matrix_to_file(dfd, latte_file_name)
         if gbl.decompose_lim > 0:
-            decompose_polytope(latte_file_name, gbl.decompose_lim)
-            exit(0)
+            latte_filenames = decompose_polytope(
+                latte_file_name, gbl.decompose_lim)
+            if latte_filenames is not None:
+                for latte_file_name in latte_filenames:
+                    result = run_latte_on_matrix(latte_file_name)
+                    final_sum += result
         else:
             result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)

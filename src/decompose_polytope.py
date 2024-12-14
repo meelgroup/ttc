@@ -61,25 +61,16 @@ def read_vertices_file(file_path):
 
 
 def calculate_and_sort_ranges(ranges, decompose_lim):
-    """
-    Calculate the lengths of the ranges, sort dimensions by increasing length, and find dimensions with product of lengths < 100.
-
-    Parameters:
-        ranges (list of tuples): Each tuple contains (min_value, max_value) for each dimension.
-
-    Returns:
-        list: Dimensions sorted by increasing length whose product of lengths < 100.
-    """
-    lengths = [(i, r[1] - r[0]) for i, r in enumerate(ranges)]
+    lengths = [(i, r[1] - r[0], r[1], r[0]) for i, r in enumerate(ranges)]
     lengths.sort(key=lambda x: x[1])
 
     selected_dimensions = []
     product = 1
 
-    for dim, length in lengths:
+    for dim, length, maxr, minr in lengths:
         if product * length < decompose_lim:
             # Dim + 1 for 1-based indexing
-            selected_dimensions.append((dim + 1, length))
+            selected_dimensions.append((dim + 1, length, maxr, minr))
             product *= length
         else:
             break
@@ -118,11 +109,88 @@ def get_dimension_range_from_vertices(dimension_ranges, decompose_lim):
     sorted_dimensions = calculate_and_sort_ranges(
         dimension_ranges, decompose_lim)
     print("\nDimensions sorted by length with product < 100:")
-    for dim, length in sorted_dimensions:
+    for dim, length, _, _ in sorted_dimensions:
         print(f"Dimension {dim}: Length = {length}")
+    return sorted_dimensions
+
+
+def get_ranges_for_besr_dimensions(latte_filename, decompose_lim):
+    vertices_file = convert_latte_to_vertices(latte_filename)
+    dimension_ranges = read_vertices_file(vertices_file)
+    sorted_dimensions = get_dimension_range_from_vertices(
+        dimension_ranges, decompose_lim)
+    return sorted_dimensions
+
+
+def generate_polytope_files(input_file, dimensions, output_dir):
+    """
+    Generate polytope files with additional constraints and store their filenames.
+
+    Args:
+        input_file (str): Path to the original polytope file.
+        dimensions (list): List of tuples containing (dimension, max, min).
+        output_dir (str): Directory to save generated files.
+
+    Returns:
+        list: List of filenames of the generated files.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Read the original polytope file
+    with open(input_file, 'r') as f:
+        original_lines = f.readlines()
+
+    file_counter = 1
+    filenames = []
+
+    def get_possible_values(dim):
+        min_value, max_value = dim[2], dim[1]
+        step = 1  # Adjust the step size as needed for granularity
+        return [min_value + step * i for i in range(int((max_value - min_value) // step) + 1)]
+
+    # Generate all combinations of values for each dimension
+    from itertools import product
+
+    all_possible_values = [get_possible_values(dim) for dim in dimensions]
+    all_combinations = list(product(*all_possible_values))
+
+    for combination in all_combinations:
+        added_constraints = []
+        new_lines = original_lines.copy()
+
+        for i, value in enumerate(combination):
+            dimension = dimensions[i][0]
+            # Create the constraint line: value as constant, coefficients for x, y, z
+            coefficients = ["-1" if j + 1 ==
+                            dimension else "0" for j in range(len(dimensions))]
+            constraint_line = f"{value} " + " ".join(coefficients) + "\n"
+            added_constraints.append(len(new_lines) + 1)
+            new_lines.append(constraint_line)
+
+        # Add linearity information at the end
+        linearity_line = f"linearity {len(added_constraints)} " + \
+            " ".join(map(str, added_constraints)) + "\n"
+        new_lines.append(linearity_line)
+
+        # Write to a new file
+        filename = os.path.join(output_dir, f"polytope_{file_counter}.txt")
+        with open(filename, 'w') as outfile:
+            outfile.writelines(new_lines)
+
+        filenames.append(filename)
+        file_counter += 1
+
+    return filenames
 
 
 def decompose_polytope(latte_filename, decompose_lim):
-    vertices_file = convert_latte_to_vertices(latte_filename)
-    dimension_ranges = read_vertices_file(vertices_file)
-    get_dimension_range_from_vertices(dimension_ranges, decompose_lim)
+    sorted_dimenstions = get_ranges_for_besr_dimensions(
+        latte_filename, decompose_lim)
+    print(sorted_dimenstions)
+    filenames = generate_polytope_files(
+        latte_filename, sorted_dimenstions, "output")
+    print(f"Generated {len(filenames)} decomposed polytope files.")
+    return filenames
+
+    exit(0)
