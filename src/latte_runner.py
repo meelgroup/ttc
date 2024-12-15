@@ -58,8 +58,11 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
                 count = 0
             else:
                 # Return the last line of the stdout which contains the count
-                count = stdout.strip().split("\n")[-1]
-                print(f" ------------------ Count: {stdout}")
+                # count = stdout.strip().split("\n")[-1]
+                # print(f" ------------------ Count: {stdout}")
+                # read file numOfLatticePoints and return the count
+                with open("numOfLatticePoints", 'r') as f:
+                    count = f.read()
             return int(count)
 
     except subprocess.CalledProcessError as e:
