@@ -62,13 +62,15 @@ def read_vertices_file(file_path):
 
 
 def calculate_and_sort_ranges(ranges, decompose_lim):
-    lengths = [(i, r[1] - r[0], r[1], r[0]) for i, r in enumerate(ranges)]
+    lengths = [(i, r[1] - r[0] + 1, r[1], r[0]) for i, r in enumerate(ranges)]
     lengths.sort(key=lambda x: x[1])
 
     selected_dimensions = []
     product = 1
 
     for dim, length, maxr, minr in lengths:
+        if length == 0:
+            continue
         if product * length < decompose_lim:
             # Dim + 1 for 1-based indexing
             selected_dimensions.append((dim + 1, length, maxr, minr))
