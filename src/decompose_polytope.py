@@ -77,7 +77,8 @@ def calculate_and_sort_ranges(ranges, decompose_lim):
             product *= length
         else:
             break
-
+    log(
+        f"c Number of dimensions decomposed: {len(selected_dimensions)} out of {len(ranges)}", 1)
     return selected_dimensions
 
 
