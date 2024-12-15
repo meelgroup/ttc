@@ -149,14 +149,15 @@ def generate_polytope_files(input_file, dimensions, output_dir):
     filenames = []
 
     def get_possible_values(dim):
-        min_value, max_value = int(dim[2]), int(dim[1])
+        min_value, max_value = int(dim[3]), int(dim[2])
         step = 1  # Adjust the step size as needed for granularity
         return [min_value + step * i for i in range((max_value - min_value) // step + 1)]
 
     # Generate all combinations of values for each dimension
     from itertools import product
-
+    print(dimensions)
     all_possible_values = [get_possible_values(dim) for dim in dimensions]
+    print(all_possible_values)
     all_combinations = list(product(*all_possible_values))
 
     for combination in all_combinations:

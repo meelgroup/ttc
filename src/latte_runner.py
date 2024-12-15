@@ -59,6 +59,7 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
             else:
                 # Return the last line of the stdout which contains the count
                 count = stdout.strip().split("\n")[-1]
+                print(f" ------------------ Count: {stdout}")
             return int(count)
 
     except subprocess.CalledProcessError as e:
