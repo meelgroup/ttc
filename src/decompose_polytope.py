@@ -141,13 +141,17 @@ def generate_polytope_files(input_file, dimensions, output_dir):
     with open(input_file, 'r') as f:
         original_lines = f.readlines()
 
+    # Get the total number of variables from the first line of the file
+    header_parts = original_lines[0].split()
+    num_variables = int(header_parts[1]) - 1
+
     file_counter = 1
     filenames = []
 
     def get_possible_values(dim):
-        min_value, max_value = dim[2], dim[1]
+        min_value, max_value = int(dim[2]), int(dim[1])
         step = 1  # Adjust the step size as needed for granularity
-        return [min_value + step * i for i in range(int((max_value - min_value) // step) + 1)]
+        return [min_value + step * i for i in range((max_value - min_value) // step + 1)]
 
     # Generate all combinations of values for each dimension
     from itertools import product
@@ -168,11 +172,10 @@ def generate_polytope_files(input_file, dimensions, output_dir):
 
         for i, value in enumerate(combination):
             dimension = dimensions[i][0]
-            # Create the constraint line: value as constant, coefficients for x, y, z
+            # Create the constraint line: value as constant, coefficients for all variables
             coefficients = ["-1" if j + 1 ==
-                            dimension else "0" for j in range(len(dimensions))]
-            val = int(value)
-            constraint_line = f"{val} " + " ".join(coefficients) + "\n"
+                            dimension else "0" for j in range(num_variables)]
+            constraint_line = f"{int(value)} " + " ".join(coefficients) + "\n"
             added_constraints.append(len(new_lines))
             new_lines.append(constraint_line)
 
