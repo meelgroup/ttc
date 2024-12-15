@@ -3,9 +3,11 @@ import os
 import sys
 from .utils import log
 import threading
-
+from .global_storage import gbl
 
 def stream_output(pipe, output_list):
+    if gbl.verbosity < 4:
+        return
     for line in iter(pipe.readline, ''):
         sys.stdout.write(f"{line}")
         sys.stdout.flush()
@@ -16,7 +18,7 @@ def stream_output(pipe, output_list):
 def run_latte_on_matrix(matrix_file, timeout=3600):
     log("Running latte...", 2)
     count_command = os.path.expanduser("~/latte/bin/count")
-    print("Latte command:", count_command, matrix_file)
+    log(f"Latte command:  {count_command} {matrix_file}", 3)
 
     stdout_lines = []
     stderr_lines = []
@@ -50,11 +52,11 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
             error_message = "is unbounded"
             empty_polytope_message = "Empty polytope or unbounded polytope!"
             if error_message in stdout or error_message in stderr:
-                print(
-                    "Unbounded polytope!\n TODO: Make sure this polytope is not empty\n")
+                log(
+                    "Unbounded polytope!\n TODO: Make sure this polytope is not empty", 0)
                 sys.exit(0)
             if empty_polytope_message in stdout or empty_polytope_message in stderr:
-                print("Empty polytope!\n")
+                log("Empty polytope!", 3)
                 count = 0
             else:
                 # Return the last line of the stdout which contains the count

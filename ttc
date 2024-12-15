@@ -23,7 +23,7 @@ def ttc():
 
     final_result = process_cubes(cubes, mapping)
 
-    print(f"Final count: {final_result}")
+    print(f"s mc {final_result}")
 
 
 if __name__ == "__main__":

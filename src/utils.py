@@ -14,6 +14,8 @@ def get_arg_parser():
                         default=0, help='Set verbosity level.')
     parser.add_argument("--hall", action="store_true",
                         help='Use the HALL tool to convert CNF to DNF, default is Karnaugh map extension.')
+    parser.add_argument("--cubes", action="store_true",
+                        help='Decompose into cubes and exit.')
     parser.add_argument("-d", "--decomposelim", type=int, default=0,
                         help='Limit on the number of decompositions.')
 
@@ -31,7 +33,7 @@ def check_existence_of_tools(tools):
     parent_dir = os.path.dirname(script_dir)
     # Replace cwd to the parent directory
     bin_dir = os.path.join(parent_dir, 'bin')
-    print(f"bin_dir: {bin_dir}")
+    log(f"bin_dir: {bin_dir}", 4)
     # bin_dir = os.path.join(os.getcwd(), 'bin')
     for tool in tools:
         tool_path = os.path.join(bin_dir, tool)

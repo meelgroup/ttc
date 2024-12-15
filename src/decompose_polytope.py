@@ -1,7 +1,8 @@
 import os
 import subprocess
 import sys
-
+from .global_storage import gbl
+from .utils import log
 
 def read_vertices_file(file_path):
     """
@@ -92,11 +93,13 @@ def convert_latte_to_vertices(latte_filename):
         sys.exit(1)
 
     # run cddexec --rep < latte.ext
-    print("")
     cddexec_command = os.path.expanduser("cddexec")
     with open('cdd_output.txt', 'w') as cdd_output_file:
       cdd_output = subprocess.run(
-          f"{cddexec_command} --rep < {latte_ext_filename}", shell=True, stdout=cdd_output_file, check=True, text=True)
+          f"{cddexec_command} --rep < {latte_ext_filename}", shell=True, stdout=subprocess.PIPE, check=True, text=True)
+      if gbl.verbosity > 4:
+          print(cdd_output.stdout)
+      cdd_output_file.write(cdd_output.stdout)
     # cdd_output = subprocess.run([]
     #                             f"{cddexec_command} --rep < {latte_ext_filename}", shell=True, stdout=subprocess.PIPE, check=True, text=True)
     return 'cdd_output.txt'
@@ -104,13 +107,13 @@ def convert_latte_to_vertices(latte_filename):
 
 def get_dimension_range_from_vertices(dimension_ranges, decompose_lim):
     for i, (min_val, max_val) in enumerate(dimension_ranges):
-        print(f"Dimension {i + 1}: Min = {min_val}, Max = {max_val}")
+        log(f"Dimension {i + 1}: Min = {min_val}, Max = {max_val}", 3)
 
     sorted_dimensions = calculate_and_sort_ranges(
         dimension_ranges, decompose_lim)
-    print("\nDimensions sorted by length with product < 100:")
+    log("Dimensions sorted by length with product < limit:", 2)
     for dim, length, _, _ in sorted_dimensions:
-        print(f"Dimension {dim}: Length = {length}")
+        log(f"Dimension {dim}: Length = {length}", 2)
     return sorted_dimensions
 
 
@@ -155,9 +158,7 @@ def generate_polytope_files(input_file, dimensions, output_dir):
 
     # Generate all combinations of values for each dimension
     from itertools import product
-    print(dimensions)
     all_possible_values = [get_possible_values(dim) for dim in dimensions]
-    print(all_possible_values)
     all_combinations = list(product(*all_possible_values))
 
     for combination in all_combinations:
@@ -199,10 +200,9 @@ def generate_polytope_files(input_file, dimensions, output_dir):
 def decompose_polytope(latte_filename, decompose_lim):
     sorted_dimenstions = get_ranges_for_besr_dimensions(
         latte_filename, decompose_lim)
-    print(sorted_dimenstions)
     filenames = generate_polytope_files(
         latte_filename, sorted_dimenstions, "output")
-    print(f"Generated {len(filenames)} decomposed polytope files.")
+    log(f"Generated {len(filenames)} decomposed polytope files.", 1)
     return filenames
 
     exit(0)

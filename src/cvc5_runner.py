@@ -16,12 +16,13 @@ class CVC5Runner:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(script_dir)
         bin_dir = os.path.join(parent_dir, 'bin')
-        print(f"bin_dir: {bin_dir}")
         # bin_dir = os.path.join(os.getcwd(), 'bin')
         cvc_path = os.path.join(bin_dir, 'cvc5')
 
         result = subprocess.run([cvc_path, '--boolabs', self.smt_file],
-                                capture_output=True, text=True)
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if gbl.verbosity >= 4:
+            print(result.stdout)
         if result.returncode != 0:
             raise RuntimeError(f"cvc5 error: {result.stderr}")
         log(f"cvc5 output: {result.stdout}", 4)
@@ -35,11 +36,11 @@ class CVC5Runner:
             raise ValueError(
                 "cvcoutput is None, ensure run_cvc5_on_smt_file() is called before parsing.")
         for line in self.cvcoutput.splitlines():
-            print(f"cvc5 output line: {line}")
+            log(f"cvc5 output line: {line}", 5)
             if not line.startswith('c ') or line.startswith('c end') or line.startswith('c AIG'):
                 continue
             parts = line.split(':')
-            print(f"parts: {parts}")
+            log(f"parts: {parts}", 5)
             if 'skipit' in parts[1]:
                 continue
             if any([x in parts[1] for x in forbidden_atom_starts]):
@@ -94,6 +95,6 @@ class CVC5Runner:
             # dnf_file = convert_aig_to_dnf(aig_file_name)
             # cubes = parse_dnf_file(dnf_file)
             # print(f"DNF cubes: {cubes}")
-        print(f"parsed cvc5 output: {aig_file_name}")
+        log(f"parsed cvc5 output: {aig_file_name}", 2)
 
         return self.mapping, aig_file_name

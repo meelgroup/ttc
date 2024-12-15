@@ -8,6 +8,7 @@ from .global_storage import gbl
 def convert_cnf_to_dnf(cnf_file):
     log("Running CNF to DNF converter...", 2)
 
+    cubes_size = 0
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
     bin_dir = os.path.join(parent_dir, 'bin')
@@ -38,11 +39,16 @@ def convert_cnf_to_dnf(cnf_file):
         with open(dnf_file, 'r') as f:
             print(f.read())
 
+    if gbl.cube_and_exit:
+        cubes_size = len(open(dnf_file).readlines()) - 1
+        print(f"c Number of cubes: {cubes_size}")
+        exit(0)
+
     return dnf_file
 
 
 def convert_to_dnf(cnf_file):
-    print(f"Using {gbl.dnfizer} to convert CNF to DNF")
+    log(f"c Using {gbl.dnfizer} to convert CNF to DNF", 1)
     if gbl.dnfizer == "hall":
         return convert_aig_to_dnf(cnf_file)
     else:
@@ -50,6 +56,7 @@ def convert_to_dnf(cnf_file):
 
 def convert_aig_to_dnf(aig_file):
     log("Running AIG to DNF converter...", 2)
+    cubes_size = 0
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
     bin_dir = os.path.join(parent_dir, 'bin')
@@ -58,7 +65,7 @@ def convert_aig_to_dnf(aig_file):
     dnf_file = aig_file[:-4] + ".dnf"
 
     command = [cnftranslate_path, aig_file, "/general/print_enumer", "1"]
-    print(f"Running Command: {' '.join(command)}")
+    log(f"Running Command: {' '.join(command)}", 2)
 
     try:
         result = subprocess.run(
@@ -78,12 +85,16 @@ def convert_aig_to_dnf(aig_file):
         for lines in result.stdout.decode().splitlines():
             if not lines.startswith('c'):
                 f.write(lines + '\n')
+                cubes_size += 1
 
-    if gbl.verbosity > 2:
+    if gbl.verbosity > 3:
         print(f"Contents of {dnf_file}:")
         with open(dnf_file, 'r') as f:
             print(f.read())
 
+    if gbl.cube_and_exit:
+        print(f"c Number of cubes: {cubes_size}")
+        exit(0)
     return dnf_file
 
 
