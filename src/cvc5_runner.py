@@ -19,7 +19,7 @@ class CVC5Runner:
         # bin_dir = os.path.join(os.getcwd(), 'bin')
         cvc_path = os.path.join(bin_dir, 'cvc5')
 
-        result = subprocess.run([cvc_path, '--boolabs', self.smt_file],
+        result = subprocess.run([cvc_path, '--boolabs', '-t', 'aiginfo', self.smt_file],
                                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if gbl.verbosity >= 4:
             print(result.stdout)
