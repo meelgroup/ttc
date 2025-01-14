@@ -15,9 +15,8 @@ def stream_output(pipe, output_list):
     pipe.close()
 
 
-def run_latte_on_matrix(matrix_file, timeout=3600):
-    log("Running latte...", 2)
-    count_command = os.path.expanduser("~/latte/bin/count")
+def run_tool_on_matrix(matrix_file, toolname, count_command, timeout=3600):
+    log(f"Running {toolname}...", 2)
     log(f"Latte command:  {count_command} {matrix_file}", 3)
 
     stdout_lines = []
@@ -76,3 +75,23 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
 
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"latte error: {e.stderr}")
+
+
+def run_latte_on_matrix(matrix_file, timeout=3600):
+    command = os.path.expanduser("~/latte/bin/count")
+    toolname = "latte"
+    return run_tool_on_matrix(matrix_file, toolname, command, timeout)
+
+
+def run_volesti_on_matrix(matrix_file, timeout=3600):
+    log(f"Running volesti...", 1)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(script_dir)
+    bin_dir = os.path.join(parent_dir, 'bin')
+    # bin_dir = os.path.join(os.getcwd(), 'bin')
+    command = os.path.join(bin_dir, 'sample_polytope')
+    toolname = "volesti"
+    result = subprocess.run([command, matrix_file], text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if gbl.verbosity >= 1:
+        print(result.stdout)

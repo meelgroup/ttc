@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <Eigen/Dense>
+#include <cmath>
 #include "misc.h"
 #include "random.hpp"
 #include "random/uniform_int.hpp"
@@ -8,11 +9,11 @@
 #include "random/uniform_real_distribution.hpp"
 
 #include "random_walks/random_walks.hpp"
-#include "random_walks/multithread_walks.hpp"
+// #include "random_walks/multithread_walks.hpp"
 
 #include "volume/volume_sequence_of_balls.hpp"
 #include "known_polytope_generators.h"
-#include "sampling/random_point_generators_multithread.hpp"
+// #include "sampling/random_point_generators_multithread.hpp"
 
 #include "diagnostics/univariate_psrf.hpp"
 
@@ -34,32 +35,75 @@ typedef HPolytope<Point> Hpolytope;
 typedef Eigen::Matrix<NT,Eigen::Dynamic,Eigen::Dynamic> MT;
 typedef Eigen::Matrix<NT,Eigen::Dynamic,1> VT;
 
+// Function to find the nearest lattice point inside the polytope
+Point findNearestLatticePoint(const Hpolytope &polytope, const Point &point) {
+    unsigned int d = point.dimension();
+    std::vector<Point> candidates;
+
+    // Generate all 2^d possible lattice points by flooring and ceiling each dimension
+    for (unsigned int i = 0; i < (1 << d); ++i) {
+        Eigen::VectorXd coords(d);
+        for (unsigned int j = 0; j < d; ++j) {
+            if (i & (1 << j)) {
+                coords(j) = std::ceil(point.getCoefficients()(j));
+            } else {
+                coords(j) = std::floor(point.getCoefficients()(j));
+            }
+        }
+        Point candidate(coords);
+        if (polytope.is_in(candidate)) {
+            candidates.push_back(candidate);
+        }
+    }
+
+    // Find the nearest lattice point among the candidates
+    Point nearest_point = candidates[0];
+    NT min_distance = (point.getCoefficients() - nearest_point.getCoefficients()).squaredNorm();
+    for (const auto &candidate : candidates) {
+        NT distance = (point.getCoefficients() - candidate.getCoefficients()).squaredNorm();
+        if (distance < min_distance) {
+            nearest_point = candidate;
+            min_distance = distance;
+        }
+    }
+
+    return nearest_point;
+}
 
 template <typename WalkType>
-void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, unsigned int num_threads, MT &samples) {
+void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, unsigned int num_threads, MT &samples, bool verbose = false) {
     RNGType rng(polytope.dimension());  // Random number generator
     typedef typename WalkType::template Walk<Hpolytope, RNGType> walk;  // Define the walk type
     PushBackWalkPolicy push_back_policy;  // Policy to manage generated points
+    // Print the polytope
 
     // Compute the starting point (inner ball center)
+    auto start = std::chrono::high_resolution_clock::now();
     Point p = polytope.ComputeInnerBall().first;
-    std::cout << "Inner ball center: (dim =" << p.dimension() - 1 <<  ")"  << std::endl;
-    for (int i = 0; i < p.dimension() - 1; i++) {
-        std::cout << p.getCoefficients()(i) << " ";
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    // std::cout << "Inner ball center: (dim =" << p.dimension() <<  ")"  << std::endl;
+    // for (int i = 0; i < p.dimension(); i++) {
+    //     std::cout << p.getCoefficients()(i) << " ";
+    // }
+    double kv_radius = sqrt(std::log(polytope.num_of_hyperplanes()))*p.dimension();
+    std::cout << "c [ttc->volesti] KV97 condition radius " << kv_radius << " (" << p.dimension() << " dimension, " << polytope.num_of_hyperplanes() << " facets)" << std::endl;
+    std::cout << "c [ttc->volesti] Chebyshev radius: " << polytope.ComputeInnerBall().second << std::endl;
+    std::cout << "c [ttc->volesti] radius calculation time: " << elapsed.count() << " seconds" << std::endl;
+    if (N == 0) {
+        return;
     }
-    std::cout << std::endl;
-    std::cout << "Inner ball radius: " << polytope.ComputeInnerBall().second << std::endl;
     // print p
 
     // List to store random points
     std::list<Point> randPoints;
 
     // Define the random point generator with multi-threading
-    typedef RandomPointGeneratorMultiThread<walk> RandomPointGenerator;
-    RandomPointGenerator::apply(polytope, p, N, walk_len, num_threads, randPoints, push_back_policy, rng);
+    typedef RandomPointGenerator<walk> RandomPointGenerator;
+    RandomPointGenerator::apply(polytope, p, N, walk_len, randPoints, push_back_policy, rng);
 
     // Prepare the samples matrix
-    unsigned int d = polytope.dimension() - 1;  // Dimension of the polytope
+    unsigned int d = p.dimension();  // Dimension of the polytope
 
     // MT samples(d, N);
     unsigned int jj = 0;
@@ -67,10 +111,22 @@ void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, 
     for (typename std::list<Point>::iterator rpit = randPoints.begin(); rpit!=randPoints.end(); rpit++, jj++)
     {
         samples.col(jj) = (*rpit).getCoefficients();
-        std::cout << "Sampled point: " << (*rpit).getCoefficients()(0) << " " << (*rpit).getCoefficients()(1) << std::endl;
+        std::cout << "Sampled point: " ;
+    for (unsigned int k = 0; k < d; k++) {
+        std::cout << (*rpit).getCoefficients()(k) << " ";
+    }
+    std::cout << std::endl;
+    Point nearest_lattice_point = findNearestLatticePoint(polytope, *rpit);
+    std::cout << "Nearest lattice point: ";
+    for (unsigned int k = 0; k < d; k++) {
+        std::cout << nearest_lattice_point.getCoefficients()(k) << " ";
+    }
+    std::cout << std::endl;
+
     }
 
 }
+
 
 
 
@@ -89,7 +145,7 @@ Hpolytope loadPolytope(const std::string &filename) {
     for (unsigned int i = 0; i < m; ++i) {
         for (unsigned int j = 0; j < n ; ++j) {
             if (j == 0)
-                file >> matrix(i, j);
+                file >>  matrix(i, j);
             else
                 file >> matrix(i, j);
         }
@@ -97,7 +153,7 @@ Hpolytope loadPolytope(const std::string &filename) {
 
     // Extract \(b\) and \(-A\) from the matrix \([b | -A]\)
     Eigen::VectorXd b = matrix.col(0);
-    Eigen::MatrixXd A = matrix.block(0, 1, m, n);
+    Eigen::MatrixXd A = matrix.block(0, 1, m, n-1);
 
     // Construct the polytope
     return Hpolytope(n, A, b); // Use dimension \(n\), matrix \(A\), and vector \(b\)
@@ -106,14 +162,18 @@ Hpolytope loadPolytope(const std::string &filename) {
 
 // Main function
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <input_file> <num_samples>" << std::endl;
+    if (argc != 2 && argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <input_file> [<num_samples>]" << std::endl;
         return 1;
     }
 
     std::string input_file = argv[1];
-    unsigned int num_samples = std::stoi(argv[2]);
-
+    unsigned int num_samples = 0;
+    if (argc == 2){
+        num_samples = 0;
+    } else {
+     num_samples = std::stoi(argv[2]);
+    }
     try {
         // Load the polytope
         Hpolytope polytope = loadPolytope(input_file);
@@ -124,13 +184,10 @@ int main(int argc, char *argv[]) {
 
         // Perform sampling
         MT samples;
-        typedef BRDHRWalk_multithread WalkType;
+        typedef BilliardWalk WalkType;
 
         samplePolytope<WalkType>(polytope, walk_len, num_samples, num_threads, samples);
         // get size of samples
-        std::cout << "Sample size: " << samples.rows() << " x " << samples.cols() << std::endl;
-
-        std::cout << "Sampled points:\n" ;
 
         // Output the samples
         for (int i = 0; i < samples.rows(); i++) {
@@ -139,7 +196,6 @@ int main(int argc, char *argv[]) {
             }
             std::cout << std::endl;
         }
-        std::cout << "Sampled points:\n" << samples << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;

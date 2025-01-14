@@ -109,8 +109,9 @@ else ()
   find_package(OpenMP REQUIRED)
 
   add_executable (sample_polytope sample_polytope.cpp)
+  add_executable (sample_polytope_simp sample_polytope_simp.cpp)
 
   TARGET_LINK_LIBRARIES(sample_polytope ${LP_SOLVE} OpenMP::OpenMP_CXX)
-
+  TARGET_LINK_LIBRARIES(sample_polytope_simp ${LP_SOLVE} OpenMP::OpenMP_CXX)
 
 endif()
