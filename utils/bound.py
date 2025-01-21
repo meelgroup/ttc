@@ -10,17 +10,35 @@ timeout_for_process_file = 10
 
 def parse_variables(smt_file_content):
     """Parse integer variables from the SMT-LIB file content using Z3."""
+    # First collect original piped names
+    import re
+    piped_vars = set()
+
+    # Find all piped variable names from declarations
+    for match in re.finditer(r'\(declare-fun (\|[^|]+\|)', smt_file_content):
+        piped_vars.add(match.group(1))
+
+    # Parse normally with Z3
     solver = z3.Solver()
     smt_formula = z3.parse_smt2_string(smt_file_content)
     solver.add(smt_formula)
     variables = set()
 
-    # Iterate over the declarations in the SMT formula
+    # Collect variables
     for assertion in smt_formula:
-        # Collect all the variables in the assertion
         for var in z3.z3util.get_vars(assertion):
-            if var.sort() == z3.IntSort():
-                variables.add(var.decl().name())
+            if var.sort() == z3.IntSort() or var.sort() == z3.RealSort():
+                name = var.decl().name()
+                # If this name exists in our piped variables, use the piped version
+                piped_name = f"|{name}|"
+                if piped_name in piped_vars:
+                    variables.add(piped_name)
+                else:
+                    variables.add(name)
+
+    # return variables
+
+    print(variables)
 
     return list(variables)
 
@@ -75,7 +93,7 @@ def process_file(input_file, output_file, bound):
     with open(output_file, 'w') as f:
         f.write(smt_content)
 
-
+    print(f"Processed file saved as {output_file}")
 # def process_file(input_file, output_file, bound):
 #     # Placeholder for file processing logic
 #     with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:

@@ -36,13 +36,22 @@ typedef Eigen::Matrix<NT,Eigen::Dynamic,Eigen::Dynamic> MT;
 typedef Eigen::Matrix<NT,Eigen::Dynamic,1> VT;
 
 // Function to find the nearest lattice point inside the polytope
-Point findNearestLatticePoint(const Hpolytope &polytope, const Point &point) {
+Point findAnyLatticePoint(const Hpolytope &polytope, const Point &point) {
     unsigned int d = point.dimension();
-    std::vector<Point> candidates;
+    Eigen::VectorXd coords(d);
 
-    // Generate all 2^d possible lattice points by flooring and ceiling each dimension
+    // Generate a lattice point by flooring each dimension
+    for (unsigned int j = 0; j < d; ++j) {
+        coords(j) = std::floor(point.getCoefficients()(j));
+    }
+
+    Point candidate(coords);
+    if (polytope.is_in(candidate)) {
+        return candidate;
+    }
+
+    // Try all combinations of floor and ceiling for each dimension
     for (unsigned int i = 0; i < (1 << d); ++i) {
-        Eigen::VectorXd coords(d);
         for (unsigned int j = 0; j < d; ++j) {
             if (i & (1 << j)) {
                 coords(j) = std::ceil(point.getCoefficients()(j));
@@ -50,24 +59,14 @@ Point findNearestLatticePoint(const Hpolytope &polytope, const Point &point) {
                 coords(j) = std::floor(point.getCoefficients()(j));
             }
         }
-        Point candidate(coords);
+        candidate = Point(coords);
         if (polytope.is_in(candidate)) {
-            candidates.push_back(candidate);
+            return candidate;
         }
     }
 
-    // Find the nearest lattice point among the candidates
-    Point nearest_point = candidates[0];
-    NT min_distance = (point.getCoefficients() - nearest_point.getCoefficients()).squaredNorm();
-    for (const auto &candidate : candidates) {
-        NT distance = (point.getCoefficients() - candidate.getCoefficients()).squaredNorm();
-        if (distance < min_distance) {
-            nearest_point = candidate;
-            min_distance = distance;
-        }
-    }
-
-    return nearest_point;
+    // If no lattice point is found, return the original point
+    return NULL;
 }
 
 template <typename WalkType>
@@ -116,7 +115,7 @@ void samplePolytope(Hpolytope &polytope, unsigned int walk_len, unsigned int N, 
         std::cout << (*rpit).getCoefficients()(k) << " ";
     }
     std::cout << std::endl;
-    Point nearest_lattice_point = findNearestLatticePoint(polytope, *rpit);
+    Point nearest_lattice_point = findAnyLatticePoint(polytope, *rpit);
     std::cout << "Nearest lattice point: ";
     for (unsigned int k = 0; k < d; k++) {
         std::cout << nearest_lattice_point.getCoefficients()(k) << " ";

@@ -40,8 +40,12 @@ def process_cubes(cubes, mapping):
                     result = run_latte_on_matrix(latte_file_name)
                     final_sum += result
         else:
-            run_volesti_on_matrix(latte_file_name)
-            result = run_latte_on_matrix(latte_file_name)
+            if gbl.logic == "lra":
+                assert (gbl.logic == "lra")
+                result = run_volesti_on_matrix(latte_file_name)
+            else:
+                assert (gbl.logic == "lia")
+                result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)
         final_sum += result
 

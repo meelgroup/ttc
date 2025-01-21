@@ -11,12 +11,28 @@ class GlobalStorage:
     dnfizer = "hall"
     cube_and_exit = False
     arg = None
+    logic = ""
+
+    def set_logic(self):
+        with open(self.filename, 'r') as file:
+            for line in file:
+                if line.startswith("(set-logic"):
+                    if "QF_LRA" in line:
+                        self.logic = "lra"
+                    elif "QF_LIA" in line:
+                        self.logic = "lia"
+                    else:
+                        print(f"logic {line.strip()} is not supported yet")
+                        exit(1)
+                    break
+            print(f"logic set to: {self.logic}")
 
     # defining the class constructor
     def initialize(self, _arg):
         self.arg = _arg
         self.verbosity = _arg.verbosity
         self.filename = _arg.smt_file
+        self.set_logic()
         if not _arg.hall:
             self.dnfizer = "cnftranslate"
         self.decompose_lim = _arg.decomposelim

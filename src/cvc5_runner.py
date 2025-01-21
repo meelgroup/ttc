@@ -44,7 +44,7 @@ class CVC5Runner:
             if 'skipit' in parts[1]:
                 continue
             if any([x in parts[1] for x in forbidden_atom_starts]):
-                print(f"WARNING: cvc5 --newt was not supposed to output {line}")
+                print(f"WARNING: cvc5 --ttc was not supposed to output {line}")
                 # exit(1)
 
             if "(=" in parts[1]:

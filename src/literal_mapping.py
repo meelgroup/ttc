@@ -16,9 +16,10 @@ grammar = """
 
     VAR: /[a-zA-Z|._~#@][a-zA-Z0-9|._~#@]*/
 
-    number: signed_number | unsigned_number
+    number: signed_number | unsigned_number | fraction
     signed_number: "(" "-" UNSIGNED_NUMBER ")"
     unsigned_number: UNSIGNED_NUMBER
+    fraction: "(" "/" UNSIGNED_NUMBER UNSIGNED_NUMBER ")"
 
     %import common.SIGNED_NUMBER
     %import common.INT -> UNSIGNED_NUMBER
@@ -67,6 +68,12 @@ class VariableCreator(Transformer):
         value = int(token.value)
         return -1 * value
 
+    def fraction(self, items):
+        print(f"fraction is hit")
+        numerator = int(items[0].value)
+        denominator = int(items[1].value)
+        return numerator / denominator
+
     def unsigned_number(self, items):
         # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
         token = items[0]
@@ -84,9 +91,17 @@ class ExpressionTransformer(Transformer, list):
         self.constraints = pd.DataFrame(0,
                                         columns=variables, index=range(1))
 
+    def fraction(self, items):
+        print(f"fraction is hit [TODO]: it is still integer")
+        numerator = int(items[0].value)
+        denominator = int(items[1].value)
+        return numerator / denominator
+
     def inequality(self, *items):
-        # self.constraints = pd.DataFrame(0, columns=self.variables, index=range(1))
-        self.constraints.loc[0, "const"] = - items[0][1].children[0]
+        number = items[0][1].children[0]
+        if isinstance(number, Tree) and number.data == "fraction":
+            number = self.fraction(number.children)
+        self.constraints.loc[0, "const"] = number
         return self.constraints
 
     def sum(self, *items):

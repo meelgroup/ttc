@@ -89,9 +89,22 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     parent_dir = os.path.dirname(script_dir)
     bin_dir = os.path.join(parent_dir, 'bin')
     # bin_dir = os.path.join(os.getcwd(), 'bin')
-    command = os.path.join(bin_dir, 'sample_polytope')
+    command = os.path.join(bin_dir, 'volume')
     toolname = "volesti"
     result = subprocess.run([command, matrix_file], text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if gbl.verbosity >= 1:
-        print(result.stdout)
+
+    for line in result.stdout.splitlines():
+        if line.startswith("c vol"):
+            parts = line.split()
+            volume = float(parts[2])
+            if volume < 0:
+                print(f"c WARNING: Volume is negative ({volume})")
+            break
+        else:
+            raise ValueError(
+                "Volume line is malformed or volume is not a number")
+    else:
+        raise ValueError("Volume line not found in output")
+
+    return volume
