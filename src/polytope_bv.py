@@ -5,8 +5,6 @@ import argparse
 
 # TODO get simplified insatnce of polytope from Latte
 
-
-
 class Polytope:
     def __init__(self, A, b):
         self.A = A
@@ -30,6 +28,7 @@ class Polytope:
             return Polytope(A, b)
 
     def to_smt_bitvector(self):
+        # TODO try balanced encoding
         solver = Solver()
         n = self.A.shape[1]
         bitwidth = self.determine_bitwidth()
@@ -58,16 +57,30 @@ class Polytope:
         return p.chebXc
 
     def shift_to_positive_coordinates(self):
+        # TODO this is not yet correct
         vertices = self.get_vertices()
+        print("Vertices of the polytope before shifting:", vertices)
         min_coords = np.min(vertices, axis=0)
-        shift_vector = -min_coords
+        print("Minimum coordinate values for each dimension:", min_coords)
+
+        shift_vector = min_coords
+        print("Shift vector to move all coordinates to positive space:", shift_vector)
+        print("b vector before shifting:", self.b)
+
         self.b = self.b - np.dot(self.A, shift_vector)
+        print("Updated b vector after shifting:", self.b)
+
         return shift_vector
 
     def determine_bitwidth(self):
+        # TODO need to be careful about the bitwidth for the constant term
         vertices = self.get_vertices()
+        if vertices is None:
+            raise ValueError(
+                "Vertices could not be determined by polytope library.")
+        dimension = vertices.shape[1]
         max_value = np.max(np.abs(vertices))
-        bitwidth = 2 * int(np.ceil(np.log2(max_value + 1))) + 1
+        bitwidth = 2 * int(np.ceil(np.log2(max_value + 1))) + dimension
         print("Vertices ranges for each coordinate:")
         for i in range(vertices.shape[1]):
             coord_values = vertices[:, i]
@@ -93,7 +106,6 @@ if __name__ == "__main__":
     polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
 
     if args.shift:
-        # TODO this does not work for all polytopes
         shift_vector = polytope.shift_to_positive_coordinates()
         print("Shift vector to positive coordinates:", shift_vector)
 
