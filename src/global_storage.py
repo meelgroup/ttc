@@ -12,6 +12,7 @@ class GlobalStorage:
     cube_and_exit = False
     arg = None
     logic = ""
+    usebv = False
 
     def set_logic(self):
         with open(self.filename, 'r') as file:
@@ -37,6 +38,7 @@ class GlobalStorage:
             self.dnfizer = "cnftranslate"
         self.decompose_lim = _arg.decomposelim
         self.cube_and_exit = _arg.cubes
+        self.usebv = _arg.intbv
 
 
 gbl = GlobalStorage()

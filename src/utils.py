@@ -16,6 +16,8 @@ def get_arg_parser():
                         help='Use the HALL tool to convert CNF to DNF, default is Karnaugh map extension.')
     parser.add_argument("--cubes", action="store_true",
                         help='Decompose into cubes and exit.')
+    parser.add_argument("--intbv", action="store_true", default=False,
+                        help='Count lattice points using bv counter.')
     parser.add_argument("-d", "--decomposelim", type=int, default=0,
                         help='Limit on the number of decompositions.')
 

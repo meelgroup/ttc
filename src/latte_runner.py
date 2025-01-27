@@ -4,6 +4,8 @@ import sys
 from .utils import log
 import threading
 from .global_storage import gbl
+from .polytope_bv import Polytope
+
 
 def stream_output(pipe, output_list):
     if gbl.verbosity < 4:
@@ -108,3 +110,9 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
         raise ValueError("Volume line not found in output")
 
     return volume
+
+
+def run_bvcount_on_matrix(matrix_file, timeout=3600):
+    polytope = Polytope.from_file(matrix_file)
+    count = polytope.count_lattice_points()
+    return count

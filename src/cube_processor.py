@@ -1,4 +1,4 @@
-from .latte_runner import run_latte_on_matrix, run_volesti_on_matrix
+from .latte_runner import run_latte_on_matrix, run_volesti_on_matrix, run_bvcount_on_matrix
 from .decompose_polytope import decompose_polytope
 from .utils import *
 import pandas as pd
@@ -45,7 +45,10 @@ def process_cubes(cubes, mapping):
                 result = run_volesti_on_matrix(latte_file_name)
             else:
                 assert (gbl.logic == "lia")
-                result = run_latte_on_matrix(latte_file_name)
+                if gbl.usebv:
+                    result = run_bvcount_on_matrix(latte_file_name)
+                else:
+                    result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)
         final_sum += result
 

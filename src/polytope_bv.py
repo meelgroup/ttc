@@ -2,6 +2,7 @@ import numpy as np
 import polytope as pc
 from z3 import *
 import argparse
+import subprocess
 
 # TODO get simplified insatnce of polytope from Latte
 
@@ -11,9 +12,12 @@ class Polytope:
         self.b = b
         self.optbw = False
         self.shift = None
+        self.smtfilename = "temp.smt2"
+        self.vertices = None
+        self.count = None
 
     @staticmethod
-    def from_file(filepath, optbw=False, shift=None):
+    def from_file(filepath, optbw=True, shift=True):
         with open(filepath, 'r') as file:
             lines = file.readlines()
             m, n = map(int, lines[0].strip().split())
@@ -49,6 +53,9 @@ class Polytope:
 
     def get_vertices(self):
         p = pc.Polytope(self.A, self.b)
+        if pc.is_empty(p):
+          print(f"Polytope {self.A,self.b} is empty")
+          return None
         vertices = pc.extreme(p)
         return vertices
 
@@ -56,19 +63,33 @@ class Polytope:
         p = pc.Polytope(self.A, self.b)
         return p.chebXc
 
+    def get_radius(self):
+        p = pc.Polytope(self.A, self.b)
+        return p.chebR
+
     def shift_to_positive_coordinates(self):
         # TODO this is not yet correct
         vertices = self.get_vertices()
         print("Vertices of the polytope before shifting:", vertices)
-        min_coords = np.min(vertices, axis=0)
+        min_coords = np.floor(np.min(vertices, axis=0))
         print("Minimum coordinate values for each dimension:", min_coords)
 
-        shift_vector = min_coords
+        shift_vector = min_coords - 1
         print("Shift vector to move all coordinates to positive space:", shift_vector)
         print("b vector before shifting:", self.b)
+        print("shift vector:", shift_vector)
+        p = pc.Polytope(self.A, self.b)
+        vertices = pc.extreme(p)
+        print("vertices before shifting:", vertices)
+        p = p.translation(- shift_vector)
+        vertices = pc.extreme(p)
+        print("vertices after shifting:", vertices)
 
         self.b = self.b - np.dot(self.A, shift_vector)
-        print("Updated b vector after shifting:", self.b)
+        p = pc.Polytope(self.A, self.b)
+        vertices = pc.extreme(p)
+        print("vertices after our shifting:", vertices)
+        print("shifted polytope", self.A, self.b)
 
         return shift_vector
 
@@ -89,6 +110,30 @@ class Polytope:
         print("Maximum absolute value among all vertices coordinates:", max_value)
         print("Determined bitwidth:", bitwidth)
         return bitwidth
+
+    def count_lattice_points(self):
+        # polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
+        if self.get_vertices() is None:
+          print("Polytope is empty")
+          return 0
+        self.shift_to_positive_coordinates()
+        self.to_smt2_file(self.smtfilename)
+
+        def run_csb_and_get_count(filename):
+          result = subprocess.run(
+              ['./bin/csb', '-c', filename], capture_output=True, text=True)
+          output_lines = result.stdout.splitlines()
+          for line in output_lines:
+            if line.startswith("s mc"):
+              return int(line.split()[2])
+          raise ValueError("Count not found in the output")
+
+        count = run_csb_and_get_count(self.smtfilename)
+        print("Lattice point count:", count)
+        return count
+
+
+
 
 # Example usage
 if __name__ == "__main__":
@@ -111,8 +156,9 @@ if __name__ == "__main__":
 
     vertices = polytope.get_vertices()
     chebyshev_center = polytope.get_chebyshev_center()
+    chebyshev_radius = polytope.get_radius()
     print("Vertices:", vertices)
     print("Chebyshev Center:", chebyshev_center)
-
+    print("Chebyshev Radius (outscribe):", chebyshev_radius)
     polytope.to_smt2_file(args.output_file)
     print(f"SMT2 file {args.output_file} generated.")
