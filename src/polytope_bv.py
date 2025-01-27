@@ -1,4 +1,5 @@
 import numpy as np
+import polytope as pc
 from z3 import *
 import argparse
 
@@ -46,6 +47,21 @@ class Polytope:
         with open(filepath, 'w') as file:
             file.write(smt2_str)
 
+    def get_vertices(self):
+        p = pc.Polytope(self.A, self.b)
+        vertices = pc.extreme(p)
+        return vertices
+
+    def get_chebyshev_center(self):
+        p = pc.Polytope(self.A, self.b)
+        return p.chebXc
+
+    def shift_to_positive_coordinates(self):
+        vertices = self.get_vertices()
+        min_coords = np.min(vertices, axis=0)
+        shift_vector = -min_coords
+        self.b = self.b - np.dot(self.A, shift_vector)
+        return shift_vector
 
 # Example usage
 if __name__ == "__main__":
@@ -53,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('input_file', type=str, help='Path to the input file')
     parser.add_argument('output_file', type=str, nargs='?', default='output.smt2',
                         help='Path to the output SMT2 file (default: output.smt2)')
-    parser.add_argument('--shift', action='store_true',
+    parser.add_argument('--shift',  action='store_true',
                         help='Shift the polytope by given vector')
     parser.add_argument('--optbw', action='store_true',
                         help='Optimize bitwidth based on dimension range')
@@ -63,8 +79,14 @@ if __name__ == "__main__":
     polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
 
     if args.shift:
-      shift_vector = np.array(args.shift)
-      polytope.b = polytope.b - np.dot(polytope.A, shift_vector)
+        # TODO this does not work for all polytopes
+        shift_vector = polytope.shift_to_positive_coordinates()
+        print("Shift vector to positive coordinates:", shift_vector)
+
+    vertices = polytope.get_vertices()
+    chebyshev_center = polytope.get_chebyshev_center()
+    print("Vertices:", vertices)
+    print("Chebyshev Center:", chebyshev_center)
 
     polytope.to_smt2_file(args.output_file)
-    print(f"SMT2 file {args.output_file} generated .")
+    print(f"SMT2 file {args.output_file} generated.")
