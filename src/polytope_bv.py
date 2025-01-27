@@ -1,5 +1,6 @@
 import numpy as np
 from z3 import *
+import argparse
 
 # TODO get simplified insatnce of polytope from Latte
 
@@ -38,13 +39,29 @@ class Polytope:
         solver = self.to_smt_bitvector()
         f = And(solver.assertions())
         smt2_str = Z3_benchmark_to_smtlib_string(
-            f.ctx, "benchmark", "QF_BV", "unknown", "", 0, None, f)
+            f.ctx_ref(), "benchmark", "QF_BV", "unknown", "", 0, None, f.as_ast())
         with open(filepath, 'w') as file:
             file.write(smt2_str)
 
 
 # Example usage
 if __name__ == "__main__":
-    polytope = Polytope.from_file('/home/arijit/solvers/ttc/matrix8.tmp')
-    polytope.to_smt2_file('/home/arijit/solvers/ttc/polytope_constraints.smt2')
-    print("SMT2 file generated.")
+    parser = argparse.ArgumentParser(description='Process a polytope file.')
+    parser.add_argument('input_file', type=str, help='Path to the input file')
+    parser.add_argument('output_file', type=str, nargs='?', default='output.smt2',
+                        help='Path to the output SMT2 file (default: output.smt2)')
+    parser.add_argument('--shift', action='store_true',
+                        help='Shift the polytope by given vector')
+    parser.add_argument('--optbw', action='store_true',
+                        help='Optimize bitwidth based on dimension range')
+
+    args = parser.parse_args()
+
+    polytope = Polytope.from_file(args.input_file)
+
+    if args.shift:
+      shift_vector = np.array(args.shift)
+      polytope.b = polytope.b - np.dot(polytope.A, shift_vector)
+
+    polytope.to_smt2_file(args.output_file)
+    print(f"SMT2 file {args.output_file} generated .")
