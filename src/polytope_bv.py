@@ -5,13 +5,16 @@ import argparse
 # TODO get simplified insatnce of polytope from Latte
 
 
+
 class Polytope:
     def __init__(self, A, b):
         self.A = A
         self.b = b
+        self.optbw = False
+        self.shift = None
 
     @staticmethod
-    def from_file(filepath):
+    def from_file(filepath, optbw=False, shift=None):
         with open(filepath, 'r') as file:
             lines = file.readlines()
             m, n = map(int, lines[0].strip().split())
@@ -57,7 +60,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    polytope = Polytope.from_file(args.input_file)
+    polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
 
     if args.shift:
       shift_vector = np.array(args.shift)
