@@ -66,7 +66,7 @@ def add_constraints(variables, bound):
     """Create constraints for the given variables with the specified bound."""
     constraints = []
     for var in variables:
-        constraints.append(f"(assert (> {var} {-bound}))")
+        constraints.append(f"(assert (> {var} (- {bound})))")
         constraints.append(f"(assert (< {var} {bound}))")
     return "\n".join(constraints)
 
@@ -148,6 +148,8 @@ def main():
     elif args.filename and args.bound is not None:
         input_file = args.filename
         bound = args.bound
+        if input_file.endswith('.smt2'):
+            input_file = input_file[:-5]
         output_file = f"{input_file}_bounded_{bound}.smt2"
         process_file(input_file, output_file, bound)
     else:

@@ -19,7 +19,7 @@ def process_cubes(cubes, mapping):
 
         # TODO good file name is not often accepted by latte!!
         # e.g., prime-cone_prime_cone_sat_5
-        latte_file_name = "matrix.tmp"
+        latte_file_name = f"matrix{i+1}.tmp"
         dfd = pd.DataFrame(columns=mapping.constraint_matrix.columns)
         for literal in cube:
             if literal in [0, 1, -2]:

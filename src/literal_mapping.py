@@ -98,10 +98,13 @@ class ExpressionTransformer(Transformer, list):
         return numerator / denominator
 
     def inequality(self, *items):
-        number = items[0][1].children[0]
-        if isinstance(number, Tree) and number.data == "fraction":
-            number = self.fraction(number.children)
-        self.constraints.loc[0, "const"] = number
+        # number = - items[0][1].children[0]
+        # if isinstance(number, Tree) and number.data == "fraction":
+        #     number = self.fraction(number.children)
+        # self.constraints.loc[0, "const"] = number
+        # self.constraints = pd.DataFrame(0, columns=self.variables, index=range(1))
+        # print(items)
+        self.constraints.loc[0, "const"] = - items[0][1].children[0]
         return self.constraints
 
     def sum(self, *items):
