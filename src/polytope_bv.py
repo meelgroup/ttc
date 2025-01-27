@@ -32,7 +32,8 @@ class Polytope:
     def to_smt_bitvector(self):
         solver = Solver()
         n = self.A.shape[1]
-        x = [BitVec(f'x{i}', 32) for i in range(n)]
+        bitwidth = self.determine_bitwidth()
+        x = [BitVec(f'x{i}', bitwidth) for i in range(n)]
         for i in range(len(self.b)):
             constraint = self.b[i] + sum(self.A[i][j] * x[j]
                                          for j in range(n)) <= 0
@@ -62,6 +63,19 @@ class Polytope:
         shift_vector = -min_coords
         self.b = self.b - np.dot(self.A, shift_vector)
         return shift_vector
+
+    def determine_bitwidth(self):
+        vertices = self.get_vertices()
+        max_value = np.max(np.abs(vertices))
+        bitwidth = 2 * int(np.ceil(np.log2(max_value + 1))) + 1
+        print("Vertices ranges for each coordinate:")
+        for i in range(vertices.shape[1]):
+            coord_values = vertices[:, i]
+            print(
+                f"Coordinate {i}: min = {np.min(coord_values)}, max = {np.max(coord_values)}")
+        print("Maximum absolute value among all vertices coordinates:", max_value)
+        print("Determined bitwidth:", bitwidth)
+        return bitwidth
 
 # Example usage
 if __name__ == "__main__":
