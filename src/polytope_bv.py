@@ -90,13 +90,47 @@ class Polytope:
         vertices = pc.extreme(p)
         print("vertices after our shifting:", vertices)
         print("shifted polytope", self.A, self.b)
+        return shift_vector
 
     def determine_bitwidth(self):
+        # TODO need to be careful about the bitwidth for the constant term
         vertices = self.get_vertices()
+        if vertices is None:
+            raise ValueError(
+                "Vertices could not be determined by polytope library.")
+        dimension = vertices.shape[1]
         max_value = np.max(np.abs(vertices))
-        bitwidth = int(np.ceil(np.log2(max_value + 1))) + \
-            1  # +1 for the sign bit
+        bitwidth = 2 * int(np.ceil(np.log2(max_value + 1))) + dimension
+        print("Vertices ranges for each coordinate:")
+        for i in range(vertices.shape[1]):
+            coord_values = vertices[:, i]
+            print(
+                f"Coordinate {i}: min = {np.min(coord_values)}, max = {np.max(coord_values)}")
+        print("Maximum absolute value among all vertices coordinates:", max_value)
+        print("Determined bitwidth:", bitwidth)
         return bitwidth
+
+    def count_lattice_points(self):
+        # polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
+        if self.get_vertices() is None:
+          print("Polytope is empty")
+          return 0
+        self.shift_to_positive_coordinates()
+        self.to_smt2_file(self.smtfilename)
+
+        def run_csb_and_get_count(filename):
+          result = subprocess.run(
+              ['./bin/csb', '-c', filename], capture_output=True, text=True)
+          output_lines = result.stdout.splitlines()
+          for line in output_lines:
+            if line.startswith("s mc"):
+              return int(line.split()[2])
+          raise ValueError("Count not found in the output")
+
+        count = run_csb_and_get_count(self.smtfilename)
+        print("Lattice point count:", count)
+        return count
+
 
     def check_equivalence(self):
         solver = self.to_smt_bitvector()
