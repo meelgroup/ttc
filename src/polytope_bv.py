@@ -91,49 +91,41 @@ class Polytope:
         print("vertices after our shifting:", vertices)
         print("shifted polytope", self.A, self.b)
 
-        return shift_vector
-
     def determine_bitwidth(self):
-        # TODO need to be careful about the bitwidth for the constant term
         vertices = self.get_vertices()
-        if vertices is None:
-            raise ValueError(
-                "Vertices could not be determined by polytope library.")
-        dimension = vertices.shape[1]
         max_value = np.max(np.abs(vertices))
-        bitwidth = 2 * int(np.ceil(np.log2(max_value + 1))) + dimension
-        print("Vertices ranges for each coordinate:")
-        for i in range(vertices.shape[1]):
-            coord_values = vertices[:, i]
-            print(
-                f"Coordinate {i}: min = {np.min(coord_values)}, max = {np.max(coord_values)}")
-        print("Maximum absolute value among all vertices coordinates:", max_value)
-        print("Determined bitwidth:", bitwidth)
+        bitwidth = int(np.ceil(np.log2(max_value + 1))) + \
+            1  # +1 for the sign bit
         return bitwidth
 
-    def count_lattice_points(self):
-        # polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
-        if self.get_vertices() is None:
-          print("Polytope is empty")
-          return 0
-        self.shift_to_positive_coordinates()
-        self.to_smt2_file(self.smtfilename)
+    def check_equivalence(self):
+        solver = self.to_smt_bitvector()
+        n = self.A.shape[1]
+        bitwidth = self.determine_bitwidth()
+        x = [BitVec(f'x{i}', bitwidth) for i in range(n)]
 
-        def run_csb_and_get_count(filename):
-          result = subprocess.run(
-              ['./bin/csb', '-c', filename], capture_output=True, text=True)
-          output_lines = result.stdout.splitlines()
-          for line in output_lines:
-            if line.startswith("s mc"):
-              return int(line.split()[2])
-          raise ValueError("Count not found in the output")
+        # Convert bitvector constraints back to polytope
+        constraints = solver.assertions()
+        A_bv = []
+        b_bv = []
+        for constraint in constraints:
+            lhs = constraint.arg(0)
+            rhs = constraint.arg(1)
+            A_row = []
+            b_value = -rhs.as_long()
+            for i in range(n):
+                coeff = lhs.arg(i).as_long()
+                A_row.append(coeff)
+            A_bv.append(A_row)
+            b_bv.append(b_value)
 
-        count = run_csb_and_get_count(self.smtfilename)
-        print("Lattice point count:", count)
-        return count
+        A_bv = np.array(A_bv)
+        b_bv = np.array(b_bv)
+        polytope_bv = pc.Polytope(A_bv, b_bv)
 
-
-
+        # Compare the original polytope with the one obtained from bitvector constraints
+        original_polytope = pc.Polytope(self.A, self.b)
+        return original_polytope == polytope_bv
 
 # Example usage
 if __name__ == "__main__":
@@ -162,3 +154,7 @@ if __name__ == "__main__":
     print("Chebyshev Radius (outscribe):", chebyshev_radius)
     polytope.to_smt2_file(args.output_file)
     print(f"SMT2 file {args.output_file} generated.")
+
+    equivalent = polytope.check_equivalence()
+    print(
+        f"Bitvector constraints are equivalent to the input polytope: {equivalent}")
