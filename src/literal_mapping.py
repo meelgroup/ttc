@@ -19,7 +19,7 @@ grammar = """
     number: signed_number | unsigned_number | fraction
     signed_number: "(" "-" UNSIGNED_NUMBER ")"
     unsigned_number: UNSIGNED_NUMBER
-    fraction: "(" "/" UNSIGNED_NUMBER UNSIGNED_NUMBER ")"
+    fraction: "(" "/" number number ")"
 
     %import common.SIGNED_NUMBER
     %import common.INT -> UNSIGNED_NUMBER
@@ -69,9 +69,11 @@ class VariableCreator(Transformer):
         return -1 * value
 
     def fraction(self, items):
-        print(f"fraction is hit")
-        numerator = int(items[0].value)
-        denominator = int(items[1].value)
+        print(f"fraction is hit {items[0].children[0]} {items[1].children[0]}")
+        # numerator = signed_number(items[0])
+        # denominator = int(items[1].value)
+        numerator = items[0].children[0]
+        denominator = items[1].children[0]
         return numerator / denominator
 
     def unsigned_number(self, items):
@@ -93,16 +95,18 @@ class ExpressionTransformer(Transformer, list):
 
     def fraction(self, items):
         print(f"fraction is hit [TODO]: it is still integer")
-        numerator = int(items[0].value)
-        denominator = int(items[1].value)
+        numerator = items[0].children[0]
+        denominator = items[1].children[0]
         return numerator / denominator
 
     def inequality(self, *items):
-        # number = - items[0][1].children[0]
-        # if isinstance(number, Tree) and number.data == "fraction":
-        #     number = self.fraction(number.children)
-        # self.constraints.loc[0, "const"] = number
-        # self.constraints = pd.DataFrame(0, columns=self.variables, index=range(1))
+        number = - items[0][1].children[0]
+        print(f"number: {number}")
+        if isinstance(number, Tree) and number.data == "fraction":
+            number = self.fraction(number.children)
+        self.constraints.loc[0, "const"] = number
+        self.constraints = pd.DataFrame(
+            0, columns=self.variables, index=range(1))
         # print(items)
         self.constraints.loc[0, "const"] = - items[0][1].children[0]
         return self.constraints
