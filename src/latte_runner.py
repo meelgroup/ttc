@@ -97,14 +97,14 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
 
     command = os.path.join(bin_dir, "latte2ine")
 
-    with open(ine_file, 'w') as f:
-        subprocess.run([command], stdin=open(matrix_file),
-                       stdout=f, stderr=subprocess.PIPE, text=True)
+    # with open(ine_file, 'w') as f:
+    #     subprocess.run([command], stdin=open(matrix_file),
+    #                    stdout=f, stderr=subprocess.PIPE, text=True)
 
     # Run volesti on the generated .ine file
     command = os.path.join(bin_dir, 'volume')
 
-    result = subprocess.run([command, ine_file], text=True,
+    result = subprocess.run([command,  matrix_file], text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     for line in result.stdout.splitlines():

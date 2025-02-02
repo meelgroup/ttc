@@ -101,13 +101,13 @@ class ExpressionTransformer(Transformer, list):
 
     def inequality(self, *items):
         number = - items[0][1].children[0]
-        print(f"number: {number}")
         if isinstance(number, Tree) and number.data == "fraction":
             number = self.fraction(number.children)
+            print(f"number: {number}")
         self.constraints.loc[0, "const"] = number
-        self.constraints = pd.DataFrame(
-            0, columns=self.variables, index=range(1))
-        # print(items)
+        # self.constraints = pd.DataFrame(
+        #     0, columns=self.variables, index=range(1))
+        # # print(items)
         self.constraints.loc[0, "const"] = - items[0][1].children[0]
         return self.constraints
 
