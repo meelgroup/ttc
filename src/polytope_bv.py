@@ -1,6 +1,7 @@
 import numpy as np
 import polytope as pc
 from z3 import *
+from z3.z3util import is_bv_value
 import argparse
 import subprocess
 
@@ -14,7 +15,7 @@ class Polytope:
         self.shift = None
         self.smtfilename = "temp.smt2"
         self.vertices = None
-        self.count = None
+        self.count = None 
 
     @staticmethod
     def from_file(filepath, optbw=True, shift=True):
@@ -146,9 +147,16 @@ class Polytope:
             lhs = constraint.arg(0)
             rhs = constraint.arg(1)
             A_row = []
-            b_value = -rhs.as_long()
+            b_value = -simplify(rhs).as_long()
             for i in range(n):
-                coeff = lhs.arg(i).as_long()
+                arg = lhs.arg(i)
+                if is_bv_value(arg):
+                    coeff = arg.as_long()
+                elif is_bv_mul(arg):
+                    coeff = arg.arg(0).as_long()
+                else:
+                    print(f"Non-numeric argument encountered: {arg}")
+                    coeff = 0
                 A_row.append(coeff)
             A_bv.append(A_row)
             b_bv.append(b_value)

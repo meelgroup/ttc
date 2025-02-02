@@ -91,9 +91,20 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     parent_dir = os.path.dirname(script_dir)
     bin_dir = os.path.join(parent_dir, 'bin')
     # bin_dir = os.path.join(os.getcwd(), 'bin')
-    command = os.path.join(bin_dir, 'volume')
     toolname = "volesti"
-    result = subprocess.run([command, matrix_file], text=True,
+    # Generate .ine file using latte2ine
+    ine_file = matrix_file + ".ine"
+
+    command = os.path.join(bin_dir, "latte2ine")
+
+    with open(ine_file, 'w') as f:
+        subprocess.run([command], stdin=open(matrix_file),
+                       stdout=f, stderr=subprocess.PIPE, text=True)
+
+    # Run volesti on the generated .ine file
+    command = os.path.join(bin_dir, 'volume')
+
+    result = subprocess.run([command, ine_file], text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     for line in result.stdout.splitlines():
@@ -103,9 +114,9 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
             if volume < 0:
                 print(f"c WARNING: Volume is negative ({volume})")
             break
-        else:
-            raise ValueError(
-                "Volume line is malformed or volume is not a number")
+        # else:
+        #     raise ValueError(
+        #         "Volume line is malformed or volume is not a number")
     else:
         raise ValueError("Volume line not found in output")
 
