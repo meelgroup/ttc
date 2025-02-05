@@ -13,6 +13,10 @@ class GlobalStorage:
     arg = None
     logic = ""
     usebv = False
+    volesti_algo = "coolinggauss"
+    volesti_algo = "coolingball"
+    # volesti_algo = "--seqball"
+    volesti_walk_length = 5
 
     def set_logic(self):
         with open(self.filename, 'r') as file:

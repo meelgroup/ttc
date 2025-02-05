@@ -17,15 +17,20 @@ def stream_output(pipe, output_list):
     pipe.close()
 
 
-def run_tool_on_matrix(matrix_file, toolname, count_command, timeout=3600):
+def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
     log(f"Running {toolname}...", 2)
-    log(f"Latte command:  {count_command} {matrix_file}", 3)
+    count_command = get_count_command(toolname)
+    if isinstance(count_command, list):
+        count_command.insert(1, matrix_file)
+    else:
+        count_command = [count_command, matrix_file]
+    log(f"{toolname} command:  {count_command}", 3)
 
     stdout_lines = []
     stderr_lines = []
 
     try:
-        with subprocess.Popen([count_command, matrix_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
+        with subprocess.Popen(count_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
             stdout_thread = threading.Thread(
                 target=stream_output, args=(proc.stdout, stdout_lines))
             stderr_thread = threading.Thread(
@@ -40,7 +45,8 @@ def run_tool_on_matrix(matrix_file, toolname, count_command, timeout=3600):
                 proc.kill()
                 stdout_thread.join()
                 stderr_thread.join()
-                raise RuntimeError("latte process timed out after 1 hour")
+                raise RuntimeError(
+                    f"{toolname} process timed out after 1 hour")
 
             stdout_thread.join()
             stderr_thread.join()
@@ -50,75 +56,139 @@ def run_tool_on_matrix(matrix_file, toolname, count_command, timeout=3600):
             stderr = ''.join(stderr_lines)
 
             # Check for specific error message in stdout or stderr
-            error_message = "is unbounded"
-            empty_polytope_message = "Empty polytope or unbounded polytope!"
-            if error_message in stdout or error_message in stderr:
-                log(
-                    "Unbounded polytope!\n TODO: Make sure this polytope is not empty", 0)
-                sys.exit(0)
-            if empty_polytope_message in stdout or empty_polytope_message in stderr:
-                log("Empty polytope!", 3)
-                count = 0
-            else:
-                # Return the last line of the stdout which contains the count
-                # count = stdout.strip().split("\n")[-1]
-                # print(f" ------------------ Count: {stdout}")
-                # read file numOfLatticePoints and return the count
-                with open("numOfLatticePoints", 'r') as f:
-                    count = f.read()
+
+            count = handle_output(stdout, stderr, toolname)
+
             return int(count)
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}", file=sys.stderr)
         sys.exit(1)
 
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"latte error: {e.stderr}")
 
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"latte error: {e.stderr}")
+def get_count_command(toolname):
+    if toolname == "latte":
+        latte_path = os.path.expanduser("~/latte/bin/count")
+        if not os.path.isfile(latte_path):
+            raise FileNotFoundError(
+                f"{latte_path} does not exist. Please ensure that the tool is installed correctly.")
+        return latte_path
+    elif toolname == "volesti":
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        bin_dir = os.path.join(parent_dir, 'bin')
+        volesti_path = os.path.join(bin_dir, 'volume')
+        if not os.path.isfile(volesti_path):
+            raise FileNotFoundError(
+                f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
+        volesti_command = [volesti_path, gbl.volesti_algo,
+                           str(gbl.volesti_walk_length)]
+        volesti_command = [volesti_path]
+        return volesti_command
+    else:
+        raise ValueError(f"Unknown toolname: {toolname}")
+
+
+def handle_output(stdout_, stderr_, toolname):
+    print(f"got this from tool output: {stdout_} {stderr_}")
+    error_message = "is unbounded"
+    count = 0
+    empty_polytope_message = "Empty polytope or unbounded polytope!"
+    if error_message in stdout_ or error_message in stderr_:
+        log(
+            "Unbounded polytope!\n TODO: Make sure this polytope is not empty", 0)
+        sys.exit(0)
+    if empty_polytope_message in stdout_ or empty_polytope_message in stderr_:
+        log("Empty polytope!", 3)
+    elif toolname == "latte":
+        with open("numOfLatticePoints", 'r') as f:
+            count = f.read()
+    elif toolname == "volesti":
+        for line in stdout_.splitlines():
+            if line.startswith("c vol"):
+                parts = line.split()
+                if parts[2] == "inf":
+                    return 0
+                count = float(parts[2])
+                if count < 0:
+                    print(f"c WARNING: Volume is negative ({count})")
+                break
+        else:
+            raise ValueError("Volume line not found in output")
+    return count
 
 
 def run_latte_on_matrix(matrix_file, timeout=3600):
-    command = os.path.expanduser("~/latte/bin/count")
     toolname = "latte"
-    return run_tool_on_matrix(matrix_file, toolname, command, timeout)
+    return run_tool_on_matrix(matrix_file, toolname, timeout)
 
 
-def run_volesti_on_matrix(matrix_file, timeout=3600):
-    log(f"Running volesti...", 1)
+def convert_latte_to_vpolytope(matrix_file):
+    log(f"Converting latte to vpolytope...", 1)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
     bin_dir = os.path.join(parent_dir, 'bin')
-    # bin_dir = os.path.join(os.getcwd(), 'bin')
-    toolname = "volesti"
-    # Generate .ine file using latte2ine
+    latte2ine_path = os.path.join(bin_dir, 'latte2ine')
+    lrs_path = os.path.join(bin_dir, 'lrs')
+
+    if not os.path.isfile(latte2ine_path):
+        raise FileNotFoundError(
+            f"{latte2ine_path} does not exist. Please ensure that the tool is installed correctly.")
+    if not os.path.isfile(lrs_path):
+        raise FileNotFoundError(
+            f"{lrs_path} does not exist. Please ensure that the tool is installed correctly.")
+
     ine_file = matrix_file + ".ine"
+    ext_file = matrix_file + ".ext"
 
-    command = os.path.join(bin_dir, "latte2ine")
+    with open(matrix_file, 'r') as infile, open(ine_file, 'w') as outfile:
+        result = subprocess.run([latte2ine_path], text=True, stdin=infile, stdout=outfile, stderr=subprocess.PIPE)
 
-    # with open(ine_file, 'w') as f:
-    #     subprocess.run([command], stdin=open(matrix_file),
-    #                    stdout=f, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"latte2vpolytope failed with return code {result.returncode}")
+    result = subprocess.run([lrs_path, ine_file, ext_file], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return ext_file
 
-    # Run volesti on the generated .ine file
-    command = os.path.join(bin_dir, 'volume')
+def run_volesti_on_matrix(matrix_file, timeout=3600):
+    log(f"Running volesti...", 1)
+    ine_file = convert_latte_to_vpolytope(matrix_file)
+    with open(ine_file, 'r') as f:
+        if "No feasible solution" in f.read():
+            return 0
+    volume = run_tool_on_matrix(ine_file, toolname="volesti")
+    # script_dir = os.path.dirname(os.path.abspath(__file__))
+    # parent_dir = os.path.dirname(script_dir)
+    # bin_dir = os.path.join(parent_dir, 'bin')
+    # # bin_dir = os.path.join(os.getcwd(), 'bin')
+    # toolname = "volesti"
+    # # Generate .ine file using latte2ine
+    # ine_file = matrix_file + ".ine"
 
-    result = subprocess.run([command,  matrix_file], text=True,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # command = os.path.join(bin_dir, "latte2ine")
 
-    for line in result.stdout.splitlines():
-        if line.startswith("c vol"):
-            parts = line.split()
-            volume = float(parts[2])
-            if volume < 0:
-                print(f"c WARNING: Volume is negative ({volume})")
-            break
-        # else:
+    # # with open(ine_file, 'w') as f:
+    # #     subprocess.run([command], stdin=open(matrix_file),
+    # #                    stdout=f, stderr=subprocess.PIPE, text=True)
+
+    # # Run volesti on the generated .ine file
+    # command = os.path.join(bin_dir, 'volume')
+
+    # result = subprocess.run([command,  matrix_file], text=True,
+    #                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # for line in result.stdout.splitlines():
+    #     if line.startswith("c vol"):
+    #         parts = line.split()
+    #         volume = float(parts[2])
+    #         if volume < 0:
+    #             print(f"c WARNING: Volume is negative ({volume})")
+    #         break
+    #     # else:
         #     raise ValueError(
         #         "Volume line is malformed or volume is not a number")
-    else:
-        raise ValueError("Volume line not found in output")
+    # else:
+    #     raise ValueError("Volume line not found in output")
 
     return volume
 
