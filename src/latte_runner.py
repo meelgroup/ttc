@@ -11,11 +11,10 @@ from .polytope_bv import Polytope
 
 
 def stream_output(pipe, output_list):
-    if gbl.verbosity < 4:
-        return
     for line in iter(pipe.readline, ''):
-        sys.stdout.write(f"{line}")
-        sys.stdout.flush()
+        if gbl.verbosity >= 4:
+            sys.stdout.write(f"{line}")
+            sys.stdout.flush()
         output_list.append(line)
     pipe.close()
 
@@ -61,7 +60,6 @@ def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
             stderr = ''.join(stderr_lines)
 
             # Check for specific error message in stdout or stderr
-
             count = handle_output(stdout, stderr, toolname)
 
             return int(count)
@@ -78,7 +76,7 @@ def get_count_command(toolname):
             raise FileNotFoundError(
                 f"{latte_path} does not exist. Please ensure that the tool is installed correctly.")
         return latte_path
-    elif toolname == "volesti":
+    elif toolname.startswith("volesti"):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(script_dir)
         bin_dir = os.path.join(parent_dir, 'bin')
@@ -89,13 +87,15 @@ def get_count_command(toolname):
         volesti_command = [volesti_path, gbl.volesti_algo,
                            str(gbl.volesti_walk_length)]
         volesti_command = [volesti_path]
+        # TODO: make this correct
+        if "vp" in toolname:
+            volesti_command.append("--vpoly")
         return volesti_command
     else:
         raise ValueError(f"Unknown toolname: {toolname}")
 
 
 def handle_output(stdout_, stderr_, toolname):
-    print(f"got this from tool output: {stdout_} {stderr_}")
     error_message = "is unbounded"
     count = -1
     empty_polytope_message = "Empty polytope or unbounded polytope!"
@@ -277,7 +277,7 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
         volume = run_tool_on_matrix(ext_file, toolname="volesti_vp")
     else:
         ine_file = convert_latte_to_polytope(matrix_file, type="hpolytope")
-        volume = run_tool_on_matrix(ine_file, toolname="volesti_hp")
+        volume = run_tool_on_matrix(ine_file, toolname="volesti")
     return volume
     # script_dir = os.path.dirname(os.path.abspath(__file__))
     # parent_dir = os.path.dirname(script_dir)

@@ -1,4 +1,3 @@
-
 class GlobalStorage:
     cnf_file = ""
     dnf_file = ""
@@ -30,7 +29,6 @@ class GlobalStorage:
                         print(f"logic {line.strip()} is not supported yet")
                         exit(1)
                     break
-            print(f"logic set to: {self.logic}")
 
     # defining the class constructor
     def initialize(self, _arg):
@@ -43,6 +41,8 @@ class GlobalStorage:
         self.decompose_lim = _arg.decomposelim
         self.cube_and_exit = _arg.cubes
         self.usebv = _arg.intbv
+        if self.verbosity > 0:
+            print(f"c [ttc] logic set to: {self.logic}")
 
 
 gbl = GlobalStorage()
