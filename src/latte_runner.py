@@ -1,3 +1,5 @@
+import math
+import fractions
 import subprocess
 import os
 import sys
@@ -126,7 +128,58 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
     return run_tool_on_matrix(matrix_file, toolname, timeout)
 
 
+def latte_to_ine_nofraction(input_file_path, output_file_path):
+    with open(input_file_path, 'r') as f_in, open(output_file_path, 'w') as f_out:
+        lines = f_in.readlines()
+        # First line has two integers: number of constraints (m) and dimension (n)
+        m, n = map(int, lines[0].strip().split())
+        constraints = [line.strip() for line in lines[1:] if line.strip()]
+
+        # Write to .ine file
+        f_out.write("H-representation\n")
+        f_out.write("begin\n")
+        f_out.write(f" {m} {n} rational\n")
+        for line in constraints:
+            f_out.write(f" {line}\n")
+        f_out.write("end\n")
+        log(f"Converted {input_file_path} to {output_file_path}", 3)
+        return 0
+
+
+def latte_to_ine(input_file_path, output_file_path):
+    with open(input_file_path, 'r') as f_in, open(output_file_path, 'w') as f_out:
+        lines = f_in.readlines()
+        # First line has two integers: number of constraints (m) and dimension (n)
+        m, n = map(int, lines[0].strip().split())
+        constraints = [line.strip() for line in lines[1:] if line.strip()]
+
+        # Write the header to the .ine file
+        f_out.write("H-representation\n")
+        f_out.write("begin\n")
+        f_out.write(f" {m} {n} rational\n")
+
+        # Process each line: rationalize coefficients so they become integers
+        for line in constraints:
+            parts = line.split()
+            # Convert each part to a Fraction
+            frac_parts = [fractions.Fraction(p) for p in parts]
+
+            # Compute LCM of denominators
+            lcm_denom = 1
+            for frac_part in frac_parts:
+                lcm_denom = (
+                    lcm_denom * frac_part.denominator) // math.gcd(lcm_denom, frac_part.denominator)
+
+            # Multiply each fraction by the LCM to get integer coefficients
+            int_parts = [frac_part * lcm_denom for frac_part in frac_parts]
+
+            # Write out the integerized line
+            f_out.write(" " + " ".join(str(int(p)) for p in int_parts) + "\n")
+
+        f_out.write("end\n")
+
 def convert_latte_to_vpolytope(matrix_file):
+    use_latte2ine_bin = False
     log(f"Converting latte to vpolytope...", 1)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
@@ -134,7 +187,7 @@ def convert_latte_to_vpolytope(matrix_file):
     latte2ine_path = os.path.join(bin_dir, 'latte2ine')
     lrs_path = os.path.join(bin_dir, 'lrs')
 
-    if not os.path.isfile(latte2ine_path):
+    if not os.path.isfile(latte2ine_path) and use_latte2ine_bin:
         raise FileNotFoundError(
             f"{latte2ine_path} does not exist. Please ensure that the tool is installed correctly.")
     if not os.path.isfile(lrs_path):
@@ -143,16 +196,19 @@ def convert_latte_to_vpolytope(matrix_file):
 
     ine_file = matrix_file + ".ine"
     ext_file = matrix_file + ".ext"
+    if use_latte2ine_bin:
+        with open(matrix_file, 'r') as infile, open(ine_file, 'w') as outfile:
+            result = subprocess.run([latte2ine_path], text=True,
+                                    stdin=infile, stdout=outfile, stderr=subprocess.PIPE)
+    else:
+        result = latte_to_ine(matrix_file, ine_file)
 
-    with open(matrix_file, 'r') as infile, open(ine_file, 'w') as outfile:
-        result = subprocess.run([latte2ine_path], text=True,
-                                stdin=infile, stdout=outfile, stderr=subprocess.PIPE)
 
+    result = subprocess.run([lrs_path, ine_file, ext_file],
+                            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
         raise RuntimeError(
             f"latte2vpolytope failed with return code {result.returncode}")
-    result = subprocess.run([lrs_path, ine_file, ext_file],
-                            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return ext_file
 
 
@@ -162,7 +218,7 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     with open(ine_file, 'r') as f:
         x = f.read()
         if "No feasible solution" in x:
-            log("****** No feasible solution found in this matrix", 4)
+            log("c [ttc->transformtovpolytope] No feasible solution found in this matrix", 4)
             return 0
     volume = run_tool_on_matrix(ine_file, toolname="volesti")
     # script_dir = os.path.dirname(os.path.abspath(__file__))
