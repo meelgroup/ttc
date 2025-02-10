@@ -92,7 +92,7 @@ def get_count_command(toolname):
 def handle_output(stdout_, stderr_, toolname):
     print(f"got this from tool output: {stdout_} {stderr_}")
     error_message = "is unbounded"
-    count = 0
+    count = -1
     empty_polytope_message = "Empty polytope or unbounded polytope!"
     if error_message in stdout_ or error_message in stderr_:
         log(
@@ -113,8 +113,11 @@ def handle_output(stdout_, stderr_, toolname):
                 if count < 0:
                     print(f"c WARNING: Volume is negative ({count})")
                 break
-        else:
+        if count == -1:
+            print(stdout_)
             raise ValueError("Volume line not found in output")
+    else:
+        raise ValueError(f"Unknown toolname: {toolname}")
     return count
 
 
@@ -142,19 +145,24 @@ def convert_latte_to_vpolytope(matrix_file):
     ext_file = matrix_file + ".ext"
 
     with open(matrix_file, 'r') as infile, open(ine_file, 'w') as outfile:
-        result = subprocess.run([latte2ine_path], text=True, stdin=infile, stdout=outfile, stderr=subprocess.PIPE)
+        result = subprocess.run([latte2ine_path], text=True,
+                                stdin=infile, stdout=outfile, stderr=subprocess.PIPE)
 
     if result.returncode != 0:
         raise RuntimeError(
             f"latte2vpolytope failed with return code {result.returncode}")
-    result = subprocess.run([lrs_path, ine_file, ext_file], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run([lrs_path, ine_file, ext_file],
+                            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return ext_file
+
 
 def run_volesti_on_matrix(matrix_file, timeout=3600):
     log(f"Running volesti...", 1)
     ine_file = convert_latte_to_vpolytope(matrix_file)
     with open(ine_file, 'r') as f:
-        if "No feasible solution" in f.read():
+        x = f.read()
+        if "No feasible solution" in x:
+            log("****** No feasible solution found in this matrix", 4)
             return 0
     volume = run_tool_on_matrix(ine_file, toolname="volesti")
     # script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -185,8 +193,8 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     #             print(f"c WARNING: Volume is negative ({volume})")
     #         break
     #     # else:
-        #     raise ValueError(
-        #         "Volume line is malformed or volume is not a number")
+    #     raise ValueError(
+    #         "Volume line is malformed or volume is not a number")
     # else:
     #     raise ValueError("Volume line not found in output")
 
