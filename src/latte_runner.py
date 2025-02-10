@@ -2,6 +2,7 @@ import math
 import fractions
 import subprocess
 import os
+import re
 import sys
 from .utils import log
 import threading
@@ -30,6 +31,8 @@ def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
 
     stdout_lines = []
     stderr_lines = []
+
+
 
     try:
         with subprocess.Popen(count_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
@@ -128,6 +131,48 @@ def run_latte_on_matrix(matrix_file, timeout=3600):
     return run_tool_on_matrix(matrix_file, toolname, timeout)
 
 
+def convert_fraction_to_decimal(input_file_path, output_file_path):
+    """
+    Reads each line from input_file_path, ignores any line starting with '*',
+    and replaces fractional values (e.g., 119/86) with their decimal
+    representation. Writes all processed lines to output_file_path.
+
+    Example lines:
+        1  119/86 -54/43 -39/43
+    become, for instance:
+        1  1.3837 -1.2558 -0.90698
+    (printed with Python's default float precision; actual decimals may differ
+    slightly depending on the fraction.)
+
+    The rest of the formatting (line beginnings, number of spaces before/after
+    tokens, etc.) is preserved as closely as possible. Any line starting with '*'
+    is completely ignored in the output.
+    """
+
+    fraction_pattern = re.compile(r'([-+]?\d+(?:\.\d+)?)/(\d+(?:\.\d+)?)')
+
+    with open(input_file_path, 'r') as fin, open(output_file_path, 'w') as fout:
+        for line in fin:
+            # Ignore comment lines that start with '*'
+            if line.lstrip().startswith('*'):
+                continue
+
+            # Function to replace "num/den" with a decimal
+            def replace_fraction(match):
+                # match.group(1) is the numerator part, match.group(2) is denominator
+                numerator = fractions.Fraction(match.group(1))
+                denominator = fractions.Fraction(match.group(2))
+                val = numerator / denominator
+                # Convert fraction to float, then to string
+                return str(float(val))
+
+            # Replace all fractional tokens with decimals
+            # This preserves the original line's spacing around tokens,
+            # but the fractional token itself is replaced in-place.
+            new_line = fraction_pattern.sub(replace_fraction, line)
+
+            fout.write(new_line)
+
 def latte_to_ine_nofraction(input_file_path, output_file_path):
     with open(input_file_path, 'r') as f_in, open(output_file_path, 'w') as f_out:
         lines = f_in.readlines()
@@ -178,7 +223,7 @@ def latte_to_ine(input_file_path, output_file_path):
 
         f_out.write("end\n")
 
-def convert_latte_to_vpolytope(matrix_file):
+def convert_latte_to_polytope(matrix_file, type="vpolytope"):
     use_latte2ine_bin = False
     log(f"Converting latte to vpolytope...", 1)
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -195,7 +240,7 @@ def convert_latte_to_vpolytope(matrix_file):
             f"{lrs_path} does not exist. Please ensure that the tool is installed correctly.")
 
     ine_file = matrix_file + ".ine"
-    ext_file = matrix_file + ".ext"
+
     if use_latte2ine_bin:
         with open(matrix_file, 'r') as infile, open(ine_file, 'w') as outfile:
             result = subprocess.run([latte2ine_path], text=True,
@@ -203,9 +248,16 @@ def convert_latte_to_vpolytope(matrix_file):
     else:
         result = latte_to_ine(matrix_file, ine_file)
 
+    if type == "hpolytope":
+        return ine_file
+    else:
+        assert(type == "vpolytope")
 
-    result = subprocess.run([lrs_path, ine_file, ext_file],
+    ext_file_temp = matrix_file + ".ext_temp"
+    ext_file = matrix_file + ".ext"
+    result = subprocess.run([lrs_path, ine_file, ext_file_temp],
                             text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    convert_fraction_to_decimal(ext_file_temp, ext_file)
     if result.returncode != 0:
         raise RuntimeError(
             f"latte2vpolytope failed with return code {result.returncode}")
@@ -214,13 +266,19 @@ def convert_latte_to_vpolytope(matrix_file):
 
 def run_volesti_on_matrix(matrix_file, timeout=3600):
     log(f"Running volesti...", 1)
-    ine_file = convert_latte_to_vpolytope(matrix_file)
-    with open(ine_file, 'r') as f:
-        x = f.read()
-        if "No feasible solution" in x:
-            log("c [ttc->transformtovpolytope] No feasible solution found in this matrix", 4)
-            return 0
-    volume = run_tool_on_matrix(ine_file, toolname="volesti")
+    use_vpolytope = False
+    if use_vpolytope:
+        ext_file = convert_latte_to_polytope(matrix_file, type="vpolytope")
+        with open(ext_file, 'r') as f:
+            x = f.read()
+            if "No feasible solution" in x:
+                log("c [ttc->transformtovpolytope] No feasible solution found in this matrix", 4)
+                return 0
+        volume = run_tool_on_matrix(ext_file, toolname="volesti_vp")
+    else:
+        ine_file = convert_latte_to_polytope(matrix_file, type="hpolytope")
+        volume = run_tool_on_matrix(ine_file, toolname="volesti_hp")
+    return volume
     # script_dir = os.path.dirname(os.path.abspath(__file__))
     # parent_dir = os.path.dirname(script_dir)
     # bin_dir = os.path.join(parent_dir, 'bin')
@@ -254,7 +312,6 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     # else:
     #     raise ValueError("Volume line not found in output")
 
-    return volume
 
 
 def run_bvcount_on_matrix(matrix_file, timeout=3600):
