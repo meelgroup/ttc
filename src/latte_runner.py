@@ -279,7 +279,10 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     else:
         ine_file = convert_latte_to_polytope(matrix_file, type="hpolytope")
         canonicalized_ine = canonicalize(matrix_file)
-        volume = run_tool_on_matrix(ine_file, toolname="volesti")
+        if canonicalized_ine == 0:
+            volume = 0
+        else:
+            volume = run_tool_on_matrix(canonicalized_ine, toolname="volesti")
     return volume
     # script_dir = os.path.dirname(os.path.abspath(__file__))
     # parent_dir = os.path.dirname(script_dir)

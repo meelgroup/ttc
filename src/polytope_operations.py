@@ -39,12 +39,13 @@ def read_h_representation(file_name):
     if len(array[0]) != cols:
         print(f"Warning: expected {cols} columns, got {len(array[0])} columns")
     log(f"c [ttc] canonicalizing array of size \
-            {len(array)}x{len(array[0])} using cddlib")
-    print(array)
-
+            {len(array)}x{len(array[0])} using cddlib", 2)
     return array
 
-def write_h_representation(file_name, array):
+def write_h_representation(file_name, array, lin_set):
+    if len(lin_set) > 0:
+        log(f"Warning: exists {len(lin_set)} equalities, d-dim volume is zero for this polytope", 1)
+        return 0
     with open(file_name, 'w') as file:
       file.write("H-representation\n")
       file.write("begin\n")
@@ -67,10 +68,14 @@ def canonicalize(input_file):
     # mat.rep_type = cdd.RepType.INEQUALITY
 
     cdd.matrix_canonicalize(mat)
-    pprint(mat.array)
+
+    log(f"c [ttc] canonicalizing array of size \
+            {len(mat.array)}x{len(mat.array[0])} using cddlib", 2)
 
     output_file = input_file.split('.')[0] + '.ine'
-    write_h_representation(output_file, mat.array)
+    result = write_h_representation(output_file, mat.array, mat.lin_set)
+    if result == 0:
+        return 0
     return output_file
 
 # Example usage:
