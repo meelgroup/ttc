@@ -28,7 +28,10 @@ def process_cubes(cubes, mapping):
             if literal not in mapping.constraint_matrix.index:
                 log(f"Literal {literal} not found in constraint matrix", 3)
                 continue
-            dfd = pd.concat([dfd, mapping.constraint_matrix.loc[[literal]]])
+            temp_row = mapping.constraint_matrix.loc[[literal]]
+            if dfd.empty:
+                dfd = temp_row
+            dfd = pd.concat([dfd, temp_row])
         # drop index
         write_matrix_to_file(dfd, latte_file_name)
         if gbl.decompose_lim > 0:

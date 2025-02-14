@@ -29,15 +29,15 @@ def read_h_representation(file_name):
         array = []
         rows, cols = 0, 0
         for line in file:
-            if line.strip() and line.split()[0].replace('-', '', 1).isdigit():
+            if line.strip() and line.split()[0].replace('-', '', 1).replace('.', '', 1).isdigit():
               if rows == 0 and cols == 0:
                   rows, cols = map(int, line.split())
               else:
                   array.append([float(num) for num in line.split()])
     if len(array) != rows:
-        print(f"Warning: expected {rows} rows, got {len(array)} rows")
+        print(f"Warning: expected {rows} rows from input, got {len(array)} rows")
     if len(array[0]) != cols:
-        print(f"Warning: expected {cols} columns, got {len(array[0])} columns")
+        print(f"Warning: expected {cols} columns from input, got {len(array[0])} columns")
     log(f"c [ttc] canonicalizing array of size \
             {len(array)}x{len(array[0])} using cddlib", 2)
     return array
@@ -58,6 +58,7 @@ def write_h_representation(file_name, array, lin_set):
 def canonicalize(input_file):
     """
     Canonicalizes an H-representation read from a file in latte format and writes the result to a file in ine format. Uses cddlib for this purpose.
+    If there exists any equality constraints in the input H-representation, the function will return 0 and print a warning message. In future, we may add support for handling equality constraints.
     Args:
         input_file (str): The name of the input file containing the H-representation in latte format.
     Returns:
@@ -69,7 +70,7 @@ def canonicalize(input_file):
 
     cdd.matrix_canonicalize(mat)
 
-    log(f"c [ttc] canonicalizing array of size \
+    log(f"c [ttc] canonicalized array of size \
             {len(mat.array)}x{len(mat.array[0])} using cddlib", 2)
 
     output_file = input_file.split('.')[0] + '.ine'

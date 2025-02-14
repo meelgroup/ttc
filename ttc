@@ -23,7 +23,11 @@ def ttc():
 
     final_result = process_cubes(cubes, mapping)
 
-    print(f"s mc {final_result}")
+    if gbl.logic == "lia":
+        resultstr = "s mc"
+    else:
+        resultstr = "s vol"
+    print(f"{resultstr} {final_result}")
 
 
 if __name__ == "__main__":

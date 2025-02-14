@@ -69,9 +69,6 @@ class VariableCreator(Transformer):
         return -1 * value
 
     def fraction(self, items):
-        print(f"fraction is hit {items[0].children[0]} {items[1].children[0]}")
-        # numerator = signed_number(items[0])
-        # denominator = int(items[1].value)
         numerator = items[0].children[0]
         denominator = items[1].children[0]
         return numerator / denominator
@@ -94,7 +91,6 @@ class ExpressionTransformer(Transformer, list):
                                         columns=variables, index=range(1))
 
     def fraction(self, items):
-        print(f"fraction is hit [TODO]: it is still integer")
         numerator = items[0].children[0]
         denominator = items[1].children[0]
         return numerator / denominator
@@ -104,7 +100,10 @@ class ExpressionTransformer(Transformer, list):
         if isinstance(number, Tree) and number.data == "fraction":
             number = self.fraction(number.children)
             print(f"number: {number}")
-        self.constraints.loc[0, "const"] = number
+        if isinstance(number, Tree):
+            number = self.fraction(number.children)
+        self.constraints["const"] = self.constraints["const"].astype(float)
+        self.constraints.loc[0, "const"] = float(number)
         # self.constraints = pd.DataFrame(
         #     0, columns=self.variables, index=range(1))
         # # print(items)
@@ -126,6 +125,7 @@ class ExpressionTransformer(Transformer, list):
         else:  # Otherwise, it's a product term like (* number VAR)
             coefficient = items[0][0]
             variable = items[0][1]
+            self.constraints[variable] = self.constraints[variable].astype(float)
             self.constraints.loc[0, variable] = coefficient.children[0]
 
         return {

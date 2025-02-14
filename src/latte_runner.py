@@ -63,7 +63,12 @@ def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
             # Check for specific error message in stdout or stderr
             count = handle_output(stdout, stderr, toolname)
 
-            return int(count)
+            if gbl.logic == "lia":
+                count = int(count)
+            else:
+                count = float(count)
+
+            return count
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}", file=sys.stderr)
@@ -266,7 +271,6 @@ def convert_latte_to_polytope(matrix_file, type="vpolytope"):
 
 
 def run_volesti_on_matrix(matrix_file, timeout=3600):
-    log(f"Running volesti...", 1)
     use_vpolytope = False
     if use_vpolytope:
         ext_file = convert_latte_to_polytope(matrix_file, type="vpolytope")
@@ -277,7 +281,7 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
                 return 0
         volume = run_tool_on_matrix(ext_file, toolname="volesti_vp")
     else:
-        ine_file = convert_latte_to_polytope(matrix_file, type="hpolytope")
+        # ine_file = convert_latte_to_polytope(matrix_file, type="hpolytope")
         canonicalized_ine = canonicalize(matrix_file)
         if canonicalized_ine == 0:
             volume = 0
