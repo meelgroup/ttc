@@ -115,9 +115,8 @@ class Polytope:
         # log(f"polytopelib shifted vertices:\n {vertices}", 5)
 
         # TODO this check is not necessary
-        if gbl.verbosity >= 5:
-            vertices = self.get_vertices()
-            log(f"c [ttc->tobv] vertices after shifting:\n {vertices}", 5)
+        vertices = self.get_vertices()
+        log(f"c [ttc->tobv] vertices after shifting:\n {vertices}", 5)
         log(f"c [ttc->tobv]shifted polytope \n {self.A} \n {self.b}", 5)
         if vertices is not None:
             self.max_coords = np.ceil(np.max(vertices, axis=0))
