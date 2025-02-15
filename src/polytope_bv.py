@@ -6,6 +6,7 @@ from z3.z3util import is_bv_value
 import argparse
 import subprocess
 from .utils import log
+from .global_storage import gbl
 from pprint import pprint
 
 # TODO get simplified instance of polytope from Latte
@@ -64,7 +65,7 @@ class Polytope:
 
 
     def get_vertices(self):
-        polytope_array = np.hstack((self.b[:, np.newaxis], self.A))
+        polytope_array = np.hstack((self.b[:, np.newaxis], - self.A))
         mat = cdd.matrix_from_array(polytope_array, rep_type=cdd.RepType.INEQUALITY)
         # mat.rep_type = cdd.RepType.INEQUALITY
         poly = cdd.polyhedron_from_matrix(mat)
@@ -75,10 +76,8 @@ class Polytope:
         if len(vertices) == 0:
             log("c [ttc->tobv] Polytope is empty",2)
             return None
-        else:
-            pprint(vertices[:, 1:])
         log(f"c [ttc->tobv] Got {len(vertices)} {len(vertices[0])-1}-dimensional vertices  from cddlib",3)
-        log(f"c [ttc -> tobv] vertices are \n {vertices[:, 1:]}", 5)
+        log(f"c [ttc -> tobv] vertices are \n {vertices[:, 1:]}", 6)
         # Exclude the first column which is the homogeneous coordinate
         return vertices[:, 1:]
 
@@ -93,26 +92,33 @@ class Polytope:
     def shift_to_positive_coordinates(self):
         # TODO this is not yet correct
         vertices = self.get_vertices()
-        log(f"Vertices of the polytope before shifting: {vertices}", 5)
         min_coords = np.floor(np.min(vertices, axis=0))
-        log("Minimum coordinate values for each dimension: {min_coords}", 5)
 
-        shift_vector = min_coords - 1
-        # print("Shift vector to move all coordinates to positive space:", shift_vector)
+        shift_vector = - min_coords + 1
+
         # print("b vector before shifting:", self.b)
         # print("shift vector:", shift_vector)
-        p = pc.Polytope(self.A, self.b)
-        vertices = pc.extreme(p)
-        # print("vertices before shifting:", vertices)
-        p = p.translation(- shift_vector)
-        vertices = pc.extreme(p)
+        # p = pc.Polytope(self.A, self.b)
+        # vertices = pc.extreme(p)
+        # # print("vertices before shifting:", vertices)
+        # p = p.translation(- shift_vector)
+        # vertices = pc.extreme(p)
         # print("vertices after shifting:", vertices)
+        log(f" polytope before shift \n {self.A} \n {self.b}", 5)
+        log(f"Vertices of the polytope before shifting:\n {vertices}", 5)
+        log(f"Minimum coordinate values for each dimension: {min_coords}", 5)
+        log(f"Shift vector to move all coordinates to positive space: { shift_vector}", 5)
 
-        self.b = self.b - np.dot(self.A, shift_vector)
-        p = pc.Polytope(self.A, self.b)
-        vertices = self.get_vertices()
-        log(f"c [ttc->tobv] vertices after our shifting: {vertices}", 5)
-        log(f"shifted polytope {self.A} {self.b}", 5)
+        self.b = self.b - np.dot(self.A, - shift_vector)
+        # p = pc.Polytope(self.A, self.b)
+        # vertices = pc.extreme(p)
+        # log(f"polytopelib shifted vertices:\n {vertices}", 5)
+
+        # TODO this check is not necessary
+        if gbl.verbosity >= 5:
+            vertices = self.get_vertices()
+            log(f"c [ttc->tobv] vertices after shifting:\n {vertices}", 5)
+        log(f"c [ttc->tobv]shifted polytope \n {self.A} \n {self.b}", 5)
         if vertices is not None:
             self.max_coords = np.ceil(np.max(vertices, axis=0))
         else:

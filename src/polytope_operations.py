@@ -58,7 +58,7 @@ def write_h_representation(file_name, array, lin_set):
 def canonicalize(input_file):
     """
     Canonicalizes an H-representation read from a file in latte format and writes the result to a file in ine format. Uses cddlib for this purpose.
-    If there exists any equality constraints in the input H-representation, the function will return 0 and print a warning message. In future, we may add support for handling equality constraints.
+    If there exists any equality constraints in the input H-representation, the function will return 0 and print a warning message. TODO In future, we may add support for handling equality constraints.
     Args:
         input_file (str): The name of the input file containing the H-representation in latte format.
     Returns:
