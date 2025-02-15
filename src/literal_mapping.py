@@ -1,6 +1,7 @@
 from lark import Lark, Transformer
 from lark.tree import Tree
 from .utils import log
+from .global_storage import gbl
 import pandas as pd
 
 # TODO what happens for free literals
@@ -28,9 +29,11 @@ grammar = """
 """
 
 
+
 class VariableCreator(Transformer):
     def __init__(self):
         self.variables = set()
+
 
     def inequality(self, *items):
         return {
@@ -89,6 +92,9 @@ class ExpressionTransformer(Transformer, list):
         self.variables = variables
         self.constraints = pd.DataFrame(0,
                                         columns=variables, index=range(1))
+        self.variable_datatype = float
+        if gbl.logic == "lia":
+            self.variable_datatype = int
 
     def fraction(self, items):
         numerator = items[0].children[0]
@@ -102,8 +108,9 @@ class ExpressionTransformer(Transformer, list):
             print(f"number: {number}")
         if isinstance(number, Tree):
             number = self.fraction(number.children)
-        self.constraints["const"] = self.constraints["const"].astype(float)
-        self.constraints.loc[0, "const"] = float(number)
+        self.constraints["const"] = self.constraints["const"].astype(
+            self.variable_datatype)
+        self.constraints.loc[0, "const"] = self.variable_datatype(number)
         # self.constraints = pd.DataFrame(
         #     0, columns=self.variables, index=range(1))
         # # print(items)
@@ -125,7 +132,8 @@ class ExpressionTransformer(Transformer, list):
         else:  # Otherwise, it's a product term like (* number VAR)
             coefficient = items[0][0]
             variable = items[0][1]
-            self.constraints[variable] = self.constraints[variable].astype(float)
+            self.constraints[variable] = self.constraints[variable].astype(
+                self.variable_datatype)
             self.constraints.loc[0, variable] = coefficient.children[0]
 
         return {
@@ -158,6 +166,7 @@ class LiteralMapping:
                                             transformer=VariableCreator())
         self.parser = None  # will be initialized after we know all variables
         self.num_constraints_added = 0
+
 
     def get_variables(self, tree):
         variables = set()

@@ -76,7 +76,7 @@ def canonicalize(input_file):
     output_file = input_file.split('.')[0] + '.ine'
     result = write_h_representation(output_file, mat.array, mat.lin_set)
     if result == 0:
-        return 0
+        return -1
     return output_file
 
 # Example usage:

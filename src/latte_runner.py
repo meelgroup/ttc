@@ -283,8 +283,8 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
     else:
         # ine_file = convert_latte_to_polytope(matrix_file, type="hpolytope")
         canonicalized_ine = canonicalize(matrix_file)
-        if canonicalized_ine == 0:
-            volume = 0
+        if canonicalized_ine == -1:
+            volume = -1
         else:
             volume = run_tool_on_matrix(canonicalized_ine, toolname="volesti")
     return volume

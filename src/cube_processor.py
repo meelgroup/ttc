@@ -10,6 +10,8 @@ def process_cubes(cubes, mapping):
     log("Processing cubes to get final result", 1)
     final_sum = 0
     result = 0
+    ddim_zero = True
+    i = 0
     for i, cube in enumerate(cubes):
         log(f"Processing cube {i+1}/{len(cubes)}: {cube}", 2)
         # matrix_file = "matrix.tmp"
@@ -46,6 +48,10 @@ def process_cubes(cubes, mapping):
             if gbl.logic == "lra":
                 assert (gbl.logic == "lra")
                 result = run_volesti_on_matrix(latte_file_name)
+                if result >= 0:
+                    ddim_zero = False
+                else:
+                    result = 0
             else:
                 assert (gbl.logic == "lia")
                 if gbl.usebv:
@@ -54,5 +60,6 @@ def process_cubes(cubes, mapping):
                     result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)
         final_sum += result
-
+    if ddim_zero and gbl.logic == "lra" and final_sum == 0:
+        log(f"c vol is 0 because of equalities in all {i} cubes", 1)
     return final_sum
