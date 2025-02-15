@@ -4,6 +4,7 @@ from z3 import *
 from z3.z3util import is_bv_value
 import argparse
 import subprocess
+from .utils import log
 
 # TODO get simplified insatnce of polytope from Latte
 
@@ -15,7 +16,8 @@ class Polytope:
         self.shift = None
         self.smtfilename = "temp.smt2"
         self.vertices = None
-        self.count = None 
+        self.count = None
+        self.max_coords = []
 
     @staticmethod
     def from_file(filepath, optbw=True, shift=True):
@@ -37,11 +39,16 @@ class Polytope:
         solver = Solver()
         n = self.A.shape[1]
         bitwidth = self.determine_bitwidth()
+        # TODO potential error -- wrong variables are taken?
         x = [BitVec(f'x{i}', bitwidth) for i in range(n)]
         for i in range(len(self.b)):
-            constraint = self.b[i] + sum(self.A[i][j] * x[j]
-                                         for j in range(n)) <= 0
+            constraint = sum(self.A[i][j] * x[j]
+                                  for j in range(n)) <= self.b[i]
             solver.add(constraint)
+            log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)
+        for i in range(len(self.max_coords)):
+            solver.add(x[i] <= self.max_coords[i])
+            solver.add(x[i] > 0)
         return solver
 
     def to_smt2_file(self, filepath):
@@ -55,7 +62,7 @@ class Polytope:
     def get_vertices(self):
         p = pc.Polytope(self.A, self.b)
         if pc.is_empty(p):
-          print(f"Polytope {self.A,self.b} is empty")
+          log(f"c [ttc->tobv] Polytope {self.A,self.b} is empty", 3)
           return None
         vertices = pc.extreme(p)
         return vertices
@@ -71,26 +78,30 @@ class Polytope:
     def shift_to_positive_coordinates(self):
         # TODO this is not yet correct
         vertices = self.get_vertices()
-        print("Vertices of the polytope before shifting:", vertices)
+        log(f"Vertices of the polytope before shifting: {vertices}", 5)
         min_coords = np.floor(np.min(vertices, axis=0))
-        print("Minimum coordinate values for each dimension:", min_coords)
+        log("Minimum coordinate values for each dimension: {min_coords}", 5)
 
         shift_vector = min_coords - 1
-        print("Shift vector to move all coordinates to positive space:", shift_vector)
-        print("b vector before shifting:", self.b)
-        print("shift vector:", shift_vector)
+        # print("Shift vector to move all coordinates to positive space:", shift_vector)
+        # print("b vector before shifting:", self.b)
+        # print("shift vector:", shift_vector)
         p = pc.Polytope(self.A, self.b)
         vertices = pc.extreme(p)
-        print("vertices before shifting:", vertices)
+        # print("vertices before shifting:", vertices)
         p = p.translation(- shift_vector)
         vertices = pc.extreme(p)
-        print("vertices after shifting:", vertices)
+        # print("vertices after shifting:", vertices)
 
         self.b = self.b - np.dot(self.A, shift_vector)
         p = pc.Polytope(self.A, self.b)
         vertices = pc.extreme(p)
-        print("vertices after our shifting:", vertices)
-        print("shifted polytope", self.A, self.b)
+        log(f"c [ttc->tobv] vertices after our shifting: {vertices}", 5)
+        log(f"shifted polytope {self.A} {self.b}", 5)
+        if vertices is not None:
+            self.max_coords = np.ceil(np.max(vertices, axis=0))
+        else:
+            self.max_coords = None
         return shift_vector
 
     def determine_bitwidth(self):
@@ -102,26 +113,29 @@ class Polytope:
         dimension = vertices.shape[1]
         max_value = np.max(np.abs(vertices))
         bitwidth = 2 * int(np.ceil(np.log2(max_value + 1))) + dimension
-        print("Vertices ranges for each coordinate:")
+        log("c [ttc->tobv] Vertices ranges for each coordinate:", 4)
         for i in range(vertices.shape[1]):
             coord_values = vertices[:, i]
-            print(
-                f"Coordinate {i}: min = {np.min(coord_values)}, max = {np.max(coord_values)}")
-        print("Maximum absolute value among all vertices coordinates:", max_value)
-        print("Determined bitwidth:", bitwidth)
+            log(f"c [ttc->tobv] Coordinate {i}: min = {np.min(coord_values)}, max = {np.max(coord_values)}", 4)
+        log("c [ttc->tobv] Maximum absolute value among all vertices coordinates: {max_value}", 4)
+        log("c [ttc->tobv] Determined bitwidth: {bitwidth}", 4)
         return bitwidth
 
     def count_lattice_points(self):
         # polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
         if self.get_vertices() is None:
-          print("Polytope is empty")
+          log("c [ttc->tobv] Polytope is empty",3)
           return 0
         self.shift_to_positive_coordinates()
         self.to_smt2_file(self.smtfilename)
 
         def run_csb_and_get_count(filename):
+          script_dir = os.path.dirname(os.path.abspath(__file__))
+          parent_dir = os.path.dirname(script_dir)
+          bin_dir = os.path.join(parent_dir, 'bin')
+          csb_path = os.path.join(bin_dir, 'csb')
           result = subprocess.run(
-              ['./bin/csb', '-c', filename], capture_output=True, text=True)
+              [csb_path, '-c', filename], capture_output=True, text=True)
           output_lines = result.stdout.splitlines()
           for line in output_lines:
             if line.startswith("s mc"):
@@ -196,7 +210,9 @@ if __name__ == "__main__":
     print("Chebyshev Radius (outscribe):", chebyshev_radius)
     polytope.to_smt2_file(args.output_file)
     print(f"SMT2 file {args.output_file} generated.")
+    count = polytope.count_lattice_points()
+    print(f"Lattice point count: {count}")
 
-    equivalent = polytope.check_equivalence()
-    print(
-        f"Bitvector constraints are equivalent to the input polytope: {equivalent}")
+    # equivalent = polytope.check_equivalence()
+    # print(
+    #     f"Bitvector constraints are equivalent to the input polytope: {equivalent}")

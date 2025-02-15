@@ -29,11 +29,9 @@ grammar = """
 """
 
 
-
 class VariableCreator(Transformer):
     def __init__(self):
         self.variables = set()
-
 
     def inequality(self, *items):
         return {
@@ -166,7 +164,6 @@ class LiteralMapping:
                                             transformer=VariableCreator())
         self.parser = None  # will be initialized after we know all variables
         self.num_constraints_added = 0
-
 
     def get_variables(self, tree):
         variables = set()
