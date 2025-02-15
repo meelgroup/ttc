@@ -1,12 +1,14 @@
 import numpy as np
+import cdd
 import polytope as pc
 from z3 import *
 from z3.z3util import is_bv_value
 import argparse
 import subprocess
 from .utils import log
+from pprint import pprint
 
-# TODO get simplified insatnce of polytope from Latte
+# TODO get simplified instance of polytope from Latte
 
 class Polytope:
     def __init__(self, A, b):
@@ -59,13 +61,26 @@ class Polytope:
         with open(filepath, 'w') as file:
             file.write(smt2_str)
 
+
+
     def get_vertices(self):
-        p = pc.Polytope(self.A, self.b)
-        if pc.is_empty(p):
-          log(f"c [ttc->tobv] Polytope {self.A,self.b} is empty", 3)
-          return None
-        vertices = pc.extreme(p)
-        return vertices
+        polytope_array = np.hstack((self.b[:, np.newaxis], self.A))
+        mat = cdd.matrix_from_array(polytope_array, rep_type=cdd.RepType.INEQUALITY)
+        # mat.rep_type = cdd.RepType.INEQUALITY
+        poly = cdd.polyhedron_from_matrix(mat)
+
+        vertices_cdd = cdd.copy_generators(poly)
+
+        vertices = np.array(vertices_cdd.array)
+        if len(vertices) == 0:
+            log("c [ttc->tobv] Polytope is empty",2)
+            return None
+        else:
+            pprint(vertices[:, 1:])
+        log(f"c [ttc->tobv] Got {len(vertices)} {len(vertices[0])-1}-dimensional vertices  from cddlib",3)
+        log(f"c [ttc -> tobv] vertices are \n {vertices[:, 1:]}", 5)
+        # Exclude the first column which is the homogeneous coordinate
+        return vertices[:, 1:]
 
     def get_chebyshev_center(self):
         p = pc.Polytope(self.A, self.b)
@@ -95,7 +110,7 @@ class Polytope:
 
         self.b = self.b - np.dot(self.A, shift_vector)
         p = pc.Polytope(self.A, self.b)
-        vertices = pc.extreme(p)
+        vertices = self.get_vertices()
         log(f"c [ttc->tobv] vertices after our shifting: {vertices}", 5)
         log(f"shifted polytope {self.A} {self.b}", 5)
         if vertices is not None:
