@@ -135,8 +135,8 @@ class Polytope:
         for i in range(vertices.shape[1]):
             coord_values = vertices[:, i]
             log(f"c [ttc->tobv] Coordinate {i}: min = {np.min(coord_values)}, max = {np.max(coord_values)}", 4)
-        log("c [ttc->tobv] Maximum absolute value among all vertices coordinates: {max_value}", 4)
-        log("c [ttc->tobv] Determined bitwidth: {bitwidth}", 4)
+        log(f"c [ttc->tobv] Maximum absolute value among all vertices coordinates: {max_value}", 4)
+        log(f"c [ttc->tobv] Determined bitwidth: {bitwidth}", 4)
         return bitwidth
 
     def canonicalize(self):
