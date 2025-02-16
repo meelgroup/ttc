@@ -59,11 +59,32 @@ class Polytope:
             solver.add(x[i] > 0)
         return solver
 
-    def to_smt2_file(self, filepath):
-        solver = self.to_smt_bitvector()
-        f = And(solver.assertions())
-        smt2_str = Z3_benchmark_to_smtlib_string(
-            f.ctx_ref(), "benchmark", "QF_BV", "unknown", "", 0, None, f.as_ast())
+    def to_smt_lia(self):
+        solver = Solver()
+        n = self.A.shape[1]
+        x = [Int(f'x{i}') for i in range(n)]
+        for i in range(len(self.b)):
+            if i in self.equality_constraints:
+                constraint = sum(self.A[i][j] * x[j]
+                                  for j in range(n)) == self.b[i]
+            else:
+                constraint = sum(self.A[i][j] * x[j]
+                                  for j in range(n)) <= self.b[i]
+            solver.add(constraint)
+            # log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)
+        return solver
+
+    def to_smt2_file(self, filepath, encoding = "bv"):
+        if encoding == "bv":
+            solver = self.to_smt_bitvector()
+            f = And(solver.assertions())
+            smt2_str = Z3_benchmark_to_smtlib_string(
+                f.ctx_ref(), "benchmark", "QF_BV", "unknown", "", 0, None, f.as_ast())
+        elif encoding == "lia":
+            solver = self.to_smt_lia()
+            f = And(solver.assertions())
+            smt2_str = Z3_benchmark_to_smtlib_string(
+                f.ctx_ref(), "benchmark", "QF_LIA", "unknown", "", 0, None, f.as_ast())
         with open(filepath, 'w') as file:
             file.write(smt2_str)
 
@@ -151,12 +172,42 @@ class Polytope:
         log(f"c [ttc] canonicalized array of size \
             {len(mat.array)}x{len(mat.array[0])}, {len(self.equality_constraints)} many equalities", 2)
 
+    def run_csb_and_get_count(self):
+        filename = self.smtfilename
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        bin_dir = os.path.join(parent_dir, 'bin')
+        csb_path = os.path.join(bin_dir, 'csb')
+
+        result = subprocess.run(
+            [csb_path, '-c', filename], capture_output=True, text=True)
+        output_lines = result.stdout.splitlines()
+        for line in output_lines:
+            if line.startswith("s mc"):
+                return int(line.split()[2])
+            raise ValueError("Count not found in the output")
+
+    def run_pact_and_get_count(self):
+        filename = self.smtfilename
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        bin_dir = os.path.join(parent_dir, 'bin')
+        csb_path = os.path.join(bin_dir, 'cvc5')
+        # TODO get exact command
+        if self.max_coords is None:
+            raise ValueError("max_coords is None, cannot determine maxint")
+        maxint = max(self.max_coords)
+        full_command = csb_path + " -S --hashsm lia -i -m --no-tfp -t smap --maxint " + str(maxint) + " " + filename
+        result = subprocess.run(
+            full_command, capture_output=True, text=True)
+        output_lines = result.stdout.splitlines()
+        for line in output_lines:
+            if line.startswith("s mc"):
+                return int(line.split()[2])
+            raise ValueError("Count not found in the output")
 
 
-
-
-
-    def count_lattice_points(self):
+    def count_lattice_points_smt(self, encoding="bv"):
         # polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
         if self.get_vertices() is None:
           log("c [ttc->tobv] Polytope is empty",3)
@@ -164,22 +215,13 @@ class Polytope:
 
         self.shift_to_positive_coordinates()
         self.canonicalize()
-        self.to_smt2_file(self.smtfilename)
 
-        def run_csb_and_get_count(filename):
-          script_dir = os.path.dirname(os.path.abspath(__file__))
-          parent_dir = os.path.dirname(script_dir)
-          bin_dir = os.path.join(parent_dir, 'bin')
-          csb_path = os.path.join(bin_dir, 'csb')
-          result = subprocess.run(
-              [csb_path, '-c', filename], capture_output=True, text=True)
-          output_lines = result.stdout.splitlines()
-          for line in output_lines:
-            if line.startswith("s mc"):
-              return int(line.split()[2])
-          raise ValueError("Count not found in the output")
-
-        count = run_csb_and_get_count(self.smtfilename)
+        if encoding == "bv":
+            self.to_smt2_file(self.smtfilename, encoding)
+            count = self.run_csb_and_get_count()
+        elif encoding == "pact":
+            self.to_smt2_file(self.smtfilename, encoding)
+            count = self.run_pact_and_get_count()
         print("Lattice point count:", count)
         return count
 

@@ -12,6 +12,7 @@ class GlobalStorage:
     arg = None
     logic = ""
     usebv = False
+    usepact = False
     volesti_algo = "coolinggauss"
     volesti_algo = "coolingball"
     # volesti_algo = "--seqball"
@@ -41,6 +42,7 @@ class GlobalStorage:
         self.decompose_lim = _arg.decomposelim
         self.cube_and_exit = _arg.cubes
         self.usebv = _arg.intbv
+        self.usepact = _arg.pact
         if self.verbosity > 0:
             print(f"c [ttc] logic set to: {self.logic}")
 

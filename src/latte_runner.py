@@ -323,7 +323,7 @@ def run_volesti_on_matrix(matrix_file, timeout=3600):
 
 
 
-def run_bvcount_on_matrix(matrix_file, timeout=3600):
+def run_bvcount_on_matrix(matrix_file, encoding = "bv", timeout=3600):
     polytope = Polytope.from_file(matrix_file)
-    count = polytope.count_lattice_points()
+    count = polytope.count_lattice_points_smt(encoding)
     return count

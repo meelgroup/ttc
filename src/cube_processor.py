@@ -55,7 +55,9 @@ def process_cubes(cubes, mapping):
             else:
                 assert (gbl.logic == "lia")
                 if gbl.usebv:
-                    result = run_bvcount_on_matrix(latte_file_name)
+                    result = run_bvcount_on_matrix(latte_file_name, "bv")
+                elif gbl.usepact:
+                    result = run_bvcount_on_matrix(latte_file_name, "lia")
                 else:
                     result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)
