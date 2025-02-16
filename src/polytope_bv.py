@@ -21,6 +21,7 @@ class Polytope:
         self.vertices = None
         self.count = None
         self.max_coords = []
+        self.equality_constraints = []
 
     @staticmethod
     def from_file(filepath, optbw=True, shift=True):
@@ -45,10 +46,14 @@ class Polytope:
         # TODO potential error -- wrong variables are taken?
         x = [BitVec(f'x{i}', bitwidth) for i in range(n)]
         for i in range(len(self.b)):
-            constraint = sum(self.A[i][j] * x[j]
+            if i in self.equality_constraints:
+                constraint = sum(self.A[i][j] * x[j]
+                                  for j in range(n)) == self.b[i]
+            else:
+                constraint = sum(self.A[i][j] * x[j]
                                   for j in range(n)) <= self.b[i]
             solver.add(constraint)
-            log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)
+            # log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)
         for i in range(len(self.max_coords)):
             solver.add(x[i] <= self.max_coords[i])
             solver.add(x[i] > 0)
@@ -81,13 +86,6 @@ class Polytope:
         # Exclude the first column which is the homogeneous coordinate
         return vertices[:, 1:]
 
-    def get_chebyshev_center(self):
-        p = pc.Polytope(self.A, self.b)
-        return p.chebXc
-
-    def get_radius(self):
-        p = pc.Polytope(self.A, self.b)
-        return p.chebR
 
     def shift_to_positive_coordinates(self):
         # TODO this is not yet correct
@@ -141,12 +139,31 @@ class Polytope:
         log("c [ttc->tobv] Determined bitwidth: {bitwidth}", 4)
         return bitwidth
 
+    def canonicalize(self):
+        polytope_array = np.hstack((self.b[:, np.newaxis], - self.A))
+        mat = cdd.matrix_from_array(polytope_array, rep_type=cdd.RepType.INEQUALITY)
+        # mat.rep_type = cdd.RepType.INEQUALITY
+        cdd.matrix_canonicalize(mat)
+        poly = np.array(mat.array)
+        self.A = - poly[:, 1:]
+        self.b = poly[:, 0]
+        self.equality_constraints = mat.lin_set
+        log(f"c [ttc] canonicalized array of size \
+            {len(mat.array)}x{len(mat.array[0])}, {len(self.equality_constraints)} many equalities", 2)
+
+
+
+
+
+
     def count_lattice_points(self):
         # polytope = Polytope.from_file(args.input_file, args.optbw, args.shift)
         if self.get_vertices() is None:
           log("c [ttc->tobv] Polytope is empty",3)
           return 0
+
         self.shift_to_positive_coordinates()
+        self.canonicalize()
         self.to_smt2_file(self.smtfilename)
 
         def run_csb_and_get_count(filename):
@@ -166,6 +183,14 @@ class Polytope:
         print("Lattice point count:", count)
         return count
 
+"""
+    def get_chebyshev_center(self):
+        p = pc.Polytope(self.A, self.b)
+        return p.chebXc
+
+    def get_radius(self):
+        p = pc.Polytope(self.A, self.b)
+        return p.chebR
 
     def check_equivalence(self):
         solver = self.to_smt_bitvector()
@@ -236,3 +261,4 @@ if __name__ == "__main__":
     # equivalent = polytope.check_equivalence()
     # print(
     #     f"Bitvector constraints are equivalent to the input polytope: {equivalent}")
+"""
