@@ -185,7 +185,7 @@ class Polytope:
         for line in output_lines:
             if line.startswith("s mc"):
                 return int(line.split()[2])
-            raise ValueError("Count not found in the output")
+        raise ValueError("Count not found in the output")
 
     def run_pact_and_get_count(self):
         filename = self.smtfilename
@@ -196,15 +196,22 @@ class Polytope:
         # TODO get exact command
         if self.max_coords is None:
             raise ValueError("max_coords is None, cannot determine maxint")
-        maxint = max(self.max_coords)
-        full_command = csb_path + " -S --hashsm lia -i -m --no-tfp -t smap --maxint " + str(maxint) + " " + filename
+        maxint = int(max(self.max_coords))
+        full_command = [
+            csb_path, "-S", "--hashsm", "lia", "-i", "-m", "--no-tfp", "-t", "smap", "--maxint", str(maxint), filename
+        ]
+        log(f"c [ttc->tobv] Running PACT with command: {full_command}", 1)
         result = subprocess.run(
             full_command, capture_output=True, text=True)
         output_lines = result.stdout.splitlines()
+        log("pact coutput", 4)
         for line in output_lines:
+            log(line, 4)
             if line.startswith("s mc"):
-                return int(line.split()[2])
-            raise ValueError("Count not found in the output")
+                count = int(line.split()[2])
+                print("Lattice point count:", count)
+                return count
+        raise ValueError("Count not found in the output")
 
 
     def count_lattice_points_smt(self, encoding="bv"):
@@ -215,13 +222,17 @@ class Polytope:
 
         self.shift_to_positive_coordinates()
         self.canonicalize()
+        count = -42
 
         if encoding == "bv":
             self.to_smt2_file(self.smtfilename, encoding)
             count = self.run_csb_and_get_count()
-        elif encoding == "pact":
+        elif encoding == "lia":
             self.to_smt2_file(self.smtfilename, encoding)
+            log(f"c [ttc->tobv] Running PACT on {self.smtfilename}", 1)
             count = self.run_pact_and_get_count()
+            log(f"c [ttc->tobv] PACT count: {count}", 1)
+
         print("Lattice point count:", count)
         return count
 
