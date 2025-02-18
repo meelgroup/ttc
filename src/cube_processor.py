@@ -1,4 +1,5 @@
 from .latte_runner import run_latte_on_matrix, run_volesti_on_matrix, run_bvcount_on_matrix
+from .count_by_opt import count_by_optimization_matrix
 from .decompose_polytope import decompose_polytope
 from .utils import *
 import pandas as pd
@@ -41,7 +42,7 @@ def process_cubes(cubes, mapping):
                 latte_file_name, gbl.decompose_lim)
             if latte_filenames is not None:
                 for latte_file_name in latte_filenames:
-                    run_volesti_on_matrix(latte_file_name)
+                    # run_volesti_on_matrix(latte_file_name)
                     result = run_latte_on_matrix(latte_file_name)
                     final_sum += result
         else:
@@ -58,10 +59,12 @@ def process_cubes(cubes, mapping):
                     result = run_bvcount_on_matrix(latte_file_name, "bv")
                 elif gbl.usepact:
                     result = run_bvcount_on_matrix(latte_file_name, "lia")
+                elif gbl.useoptcnt:
+                    result = count_by_optimization_matrix(latte_file_name)
                 else:
                     result = run_latte_on_matrix(latte_file_name)
         log(f"Result from latte for cube {i+1}: {result}", 2)
         final_sum += result
     if ddim_zero and gbl.logic == "lra" and final_sum == 0:
         log(f"c vol is 0 because of equalities in all {i} cubes", 1)
-    return final_sum
+    return int(final_sum)

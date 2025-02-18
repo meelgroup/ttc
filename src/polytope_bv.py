@@ -224,6 +224,7 @@ class Polytope:
         self.canonicalize()
         count = -42
 
+
         if encoding == "bv":
             self.to_smt2_file(self.smtfilename, encoding)
             count = self.run_csb_and_get_count()

@@ -20,6 +20,8 @@ def get_arg_parser():
                         help='Count lattice points using bv counter.')
     parser.add_argument("--pact", action="store_true", default=False,
                         help='Count lattice points using pact counter.')
+    parser.add_argument("--optcnt", action="store_true", default=False,
+                        help='Count lattice points by solving optimization.')
     parser.add_argument("-d", "--decomposelim", type=int, default=0,
                         help='Limit on the number of decompositions.')
 
