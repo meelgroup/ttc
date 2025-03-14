@@ -86,7 +86,7 @@ class CVC5Runner:
 
         if gbl.dnfizer == "hall":
             log(f"created AIG file: {aig_file_name}")
-            log(f"CNF literal to atoms Mapping: \n{self.mapping}", 3)
+            log(f"CNF literal to atoms Mapping (b|-A) for Ax<=b: \n{self.mapping}", 3)
         else:
             log(f"created CNF file: {cnf_file_name}")
             log(f"CNF literal to atoms Mapping: \n{self.mapping}", 3)

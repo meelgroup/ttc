@@ -143,7 +143,6 @@ class ExpressionTransformer(Transformer, list):
     def signed_number(self, items):
         token = items[0]
         value = int(token.value)
-        (f"signed_number: {-1 * value}", 4)
         return -1 * value
 
     def unsigned_number(self, items):
@@ -207,7 +206,9 @@ class LiteralMapping:
     def negate_constraint(self, constraint_line):
         # negate the constraint line
         df = constraint_line.copy()
-        df['const'] = -df['const'] - 1
+        df['const'] = -df['const']
+        if gbl.logic == "lia":
+            df['const'] = df['const'] - 1
         df.loc[:, df.columns != 'const'] = -df.loc[:, df.columns != 'const']
         return df
 
