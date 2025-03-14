@@ -6,16 +6,19 @@ import pandas as pd
 
 # TODO what happens for free literals
 
-grammar = """
+grammar = r"""
     ?start: inequality
 
     inequality: "(" ">=" sum number ")"
 
     sum: "(" "+" product+ ")" | product
 
-    product: "(" "*" number VAR ")" | VAR
+    product: "(" "*" number identifier ")" | identifier
 
-    VAR: /[a-zA-Z|._~#@][a-zA-Z0-9|._~#@]*/
+    identifier: VAR | QUOTED_VAR
+
+    VAR: /[a-zA-Z._~#@][a-zA-Z0-9._~#@]*/
+    QUOTED_VAR: "|" /[^|]+/ "|"
 
     number: signed_number | unsigned_number | fraction
     signed_number: "(" "-" UNSIGNED_NUMBER ")"
@@ -27,6 +30,7 @@ grammar = """
     %import common.WS
     %ignore WS
 """
+
 
 
 class VariableCreator(Transformer):
@@ -55,7 +59,7 @@ class VariableCreator(Transformer):
             self.variables.add(variable)
         else:  # Otherwise, it's a product term like (* number VAR)
             coefficient = items[0][0]
-            variable = items[0][1]
+            variable = self.identifier([items[0][1]])
             self.variables.add(variable)
         return {
             "type": "product",
@@ -64,7 +68,7 @@ class VariableCreator(Transformer):
         }
 
     def signed_number(self, items):
-        # items is a list containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
+        # items is a lidst containing one token, e.g., [Token('SIGNED_NUMBER', '-2')]
         token = items[0]
         value = int(token.value)
         return -1 * value
@@ -83,6 +87,13 @@ class VariableCreator(Transformer):
 
     def VAR(self, item):
         return str(item)
+
+    def QUOTED_VAR(self, item):
+        return str(item)
+
+    def identifier(self, items):
+        return items[0]
+
 
 
 class ExpressionTransformer(Transformer, list):
@@ -152,6 +163,13 @@ class ExpressionTransformer(Transformer, list):
 
     def VAR(self, item):
         return str(item)
+
+    def identifier(self, items):
+        return items[0]
+
+    def QUOTED_VAR(self, item):
+        return str(item)
+
 
 
 class LiteralMapping:

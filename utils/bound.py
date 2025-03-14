@@ -143,7 +143,7 @@ def main():
             file_list = [line.strip() for line in list_file if line.strip()]
         print(f"Processing {len(file_list)} files...")
         bounds = [5, 10, 20, 30, 50, 60, 100]
-        bounds = [10, 50, 100]
+        bounds = [100,1000,10000]
         process_list(file_list, bounds)
     elif args.filename and args.bound is not None:
         input_file = args.filename
