@@ -65,7 +65,7 @@ def convert_aig_to_dnf(aig_file):
     dnf_file = aig_file[:-4] + ".dnf"
 
     command = [cnftranslate_path,  aig_file, "/mode",
-               "mars-nondis","/general/print_enumer", "1"]
+               "mars-dis","/general/print_enumer", "1"]
     log(f"Running Command: {' '.join(command)}", 2)
 
     try:
