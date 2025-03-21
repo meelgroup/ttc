@@ -9,6 +9,9 @@ import threading
 from .global_storage import gbl
 from .polytope_bv import Polytope
 from .polytope_operations import canonicalize
+import pandas as pd
+
+
 
 
 def stream_output(pipe, output_list):
@@ -97,6 +100,7 @@ def get_count_command(toolname):
         if "vp" in toolname:
             volesti_command.append("--vpoly")
         return volesti_command
+
     else:
         raise ValueError(f"Unknown toolname: {toolname}")
 
@@ -295,3 +299,70 @@ def run_bvcount_on_matrix(matrix_file, encoding = "bv", timeout=3600):
     polytope = Polytope.from_file(matrix_file)
     count = polytope.count_lattice_points_smt(encoding)
     return count
+
+
+def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
+    canonicalized_ine = canonicalize(matrix_file)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(script_dir)
+    bin_dir = os.path.join(parent_dir, 'bin')
+    volesti_path = os.path.join(bin_dir, 'sample')
+    if not os.path.isfile(volesti_path):
+        raise FileNotFoundError(
+            f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
+    samples_file = matrix_file + ".samples"
+    sample_command = [volesti_path,
+                       canonicalized_ine, samples_file, "-n", str(n)]
+
+    stdout_lines = []
+    stderr_lines = []
+
+    try:
+        with subprocess.Popen(sample_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
+            stdout_thread = threading.Thread(
+                target=stream_output, args=(proc.stdout, stdout_lines))
+            stderr_thread = threading.Thread(
+                target=stream_output, args=(proc.stderr, stderr_lines))
+
+            stdout_thread.start()
+            stderr_thread.start()
+            proc.wait(timeout=timeout)
+            stdout_thread.join()
+            stderr_thread.join()
+
+            df = pd.read_csv(samples_file, sep=r'\s+', header=None)
+            log(f"Sampled {df.shape[0]} points, dimensions {df.shape[1]}", 2)
+            df = df.to_numpy()
+            return df
+
+            # Join the captured output
+            stdout = ''.join(stdout_lines)
+            stderr = ''.join(stderr_lines)
+
+
+
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+
+def get_polytope_from_cube(cube, mapping):
+    dfd = pd.DataFrame(columns=mapping.constraint_matrix.columns)
+    for literal in cube:
+        if literal in [0, 1, -2]:
+            continue
+        # if lit is not in constraint_matrix, then show warning and exit
+        if literal not in mapping.constraint_matrix.index:
+            log(f"Literal {literal} not found in constraint matrix", 3)
+            continue
+        temp_row = mapping.constraint_matrix.loc[[literal]]
+        dfd = pd.concat([dfd, temp_row])
+    # After processing all literals, convert dfd into the matrix form Ax <= b.
+    # Assumes that the last column of dfd represents the constant terms.
+    if not dfd.empty:
+        A = dfd.iloc[:, :-1].to_numpy()
+        b = dfd.iloc[:, -1].to_numpy()
+        return Polytope(A, b)
+    else:
+        return Polytope(np.array([]), np.array([]))

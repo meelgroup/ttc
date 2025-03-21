@@ -5,9 +5,12 @@ from .utils import *
 import pandas as pd
 import sys
 from .global_storage import gbl
+from .cube_processor_nondis import process_cubes_nondisjoint
 
 
 def process_cubes(cubes, mapping):
+    if not gbl.disjoint:
+        return process_cubes_nondisjoint(cubes, mapping)
     log("Processing cubes to get final result", 1)
     final_sum = 0
     result = 0
@@ -16,27 +19,16 @@ def process_cubes(cubes, mapping):
     for i, cube in enumerate(cubes):
         log(f"Processing cube {i+1}/{len(cubes)}: {cube}", 2)
         # matrix_file = "matrix.tmp"
-        latte_file_name = gbl.filename.split("/")[-1]
-        latte_file_name = latte_file_name[:latte_file_name.rfind(
-            '.')] + '.latte'
+        # latte_file_name = gbl.filename.split("/")[-1]
+        # latte_file_name = latte_file_name[:latte_file_name.rfind(
+        #     '.')] + '.latte'
 
         # TODO good file name is not often accepted by latte!!
         # e.g., prime-cone_prime_cone_sat_5
         latte_file_name = f"matrix{i+1}.tmp"
-        dfd = pd.DataFrame(columns=mapping.constraint_matrix.columns)
-        for literal in cube:
-            if literal in [0, 1, -2]:
-                continue
-            # if lit is not in constraint_matrix, then show warning and exit
-            if literal not in mapping.constraint_matrix.index:
-                log(f"Literal {literal} not found in constraint matrix", 3)
-                continue
-            temp_row = mapping.constraint_matrix.loc[[literal]]
-            if dfd.empty:
-                dfd = temp_row
-            dfd = pd.concat([dfd, temp_row])
-        # drop index
-        write_matrix_to_file(dfd, latte_file_name)
+        create_polytope_from_cube(cube, mapping, latte_file_name)
+
+
         if gbl.decompose_lim > 0:
             latte_filenames = decompose_polytope(
                 latte_file_name, gbl.decompose_lim)

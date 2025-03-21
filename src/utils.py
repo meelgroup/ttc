@@ -3,6 +3,9 @@ import subprocess
 import argparse
 from .global_storage import gbl
 import numpy as np
+import random
+import string
+import pandas as pd
 
 
 def get_arg_parser():
@@ -22,8 +25,10 @@ def get_arg_parser():
                         help='Count lattice points using pact counter.')
     parser.add_argument("--optcnt", action="store_true", default=False,
                         help='Count lattice points by solving optimization.')
-    parser.add_argument("-d", "--decomposelim", type=int, default=0,
+    parser.add_argument("-l", "--decomposelim", type=int, default=0,
                         help='Limit on the number of decompositions.')
+    parser.add_argument("-d", "--disjoint", action="store_true",
+                        help='Use disjoint decomposition in LRA (disjoint is defualt in LIA).')
 
     return parser
 
@@ -60,7 +65,7 @@ def set_cnf_to_dnf_tool(use_hall):
 
 
 def write_matrix_to_file(matrix, output_file):
-    log(f"Writing matrix to file: {output_file}", 2)
+    log(f"Writing matrix to file: {output_file}", 4)
     matrix_array = matrix.to_numpy()
 
     # Get the size of the matrix
@@ -84,3 +89,19 @@ def clean_on_exit(temp_files):
             os.remove(file)
             log(f"Removed {file}", 3)
     log("Cleaned up.", 2)
+
+
+def create_all_polytope_files(cubes, mapping):
+    filenames = []
+    random_prefix = ''.join(random.choice(string.ascii_letters)
+                            for _ in range(8))
+    for i, cube in enumerate(cubes):
+        filename = create_polytope_from_cube(
+            cube, mapping, f"{random_prefix}_cube{i+1}.ine")
+        filenames.append(filename)
+    log(f"Created {len(filenames)} polytope files", 2)
+    return filenames
+
+
+
+

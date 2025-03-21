@@ -16,6 +16,7 @@ class GlobalStorage:
     useoptcnt = False
     volesti_algo = "coolinggauss"
     volesti_algo = "coolingball"
+    disjoint = False
     # volesti_algo = "--seqball"
     volesti_walk_length = 5
 
@@ -47,6 +48,8 @@ class GlobalStorage:
         self.useoptcnt = _arg.optcnt
         if self.verbosity > 0:
             print(f"c [ttc] logic set to: {self.logic}")
+        if self.logic == "lra":
+            self.disjoint = _arg.disjoint
 
 
 gbl = GlobalStorage()

@@ -1,6 +1,6 @@
-(set-logic QF_LIA)
-(declare-fun x () Int)
-(declare-fun y () Int)
+(set-logic QF_LRA)
+(declare-fun x () Real)
+(declare-fun y () Real)
 
 (assert (<= (+ (* 2 x) (* 1 y)) 10))
 (assert (>= (+ (* 2 x) (* 1 y)) (- 1)))

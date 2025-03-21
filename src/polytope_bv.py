@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
 import cdd
 import polytope as pc
 from z3 import *
 from z3.z3util import is_bv_value
 import argparse
 import subprocess
-from .utils import log
+from .utils import *
 from .global_storage import gbl
 from pprint import pprint
 
@@ -37,6 +38,37 @@ class Polytope:
             A = np.array(A)
             b = np.array(b)
             return Polytope(A, b)
+
+    @staticmethod
+    def create_polytope_from_cube(cube, mapping, filename = ""):
+        dfd = pd.DataFrame(columns=mapping.constraint_matrix.columns)
+        for literal in cube:
+            if literal in [0, 1, -2]:
+                continue
+            # if lit is not in constraint_matrix, then show warning and exit
+            if literal not in mapping.constraint_matrix.index:
+                log(f"Literal {literal} not found in constraint matrix", 3)
+                continue
+            temp_row = mapping.constraint_matrix.loc[[literal]]
+            if dfd.empty:
+                dfd = temp_row
+            dfd = pd.concat([dfd, temp_row])
+        # drop index
+        if filename != "":
+            write_matrix_to_file(dfd, filename)
+        new_b = dfd.iloc[:, 0].to_numpy()
+        new_A = dfd.iloc[:, 1:].to_numpy()
+        log(f"Created polytope from cube: \n {new_A} \n {new_b}", 3)
+        return Polytope(new_A, new_b)
+
+
+
+    def is_in_polytope(self, point):
+        tol = 1e-6
+        log(f"c [ttc->tobv] Checking if point {point} is in polytope", 3)
+        return np.all(np.dot(self.A, point) <= self.b + tol)
+
+
 
     def to_smt_bitvector(self):
         # TODO try balanced encoding
