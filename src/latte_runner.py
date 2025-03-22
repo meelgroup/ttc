@@ -316,11 +316,15 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
 
     samples_found = False
     df = None
+    attempts = 0
+    base_command = sample_command
+
 
     while not samples_found:
 
         stdout_lines = []
         stderr_lines = []
+        attempts += 1
 
         try:
             with subprocess.Popen(sample_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
@@ -354,6 +358,13 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
                 samples_found = False
 
         else:
+            if (attempts == 1):
+                sample_command = base_command + ["--algorithm", "accelarated"]
+            elif (attempts == 2):
+                sample_command = base_command + ["--algorithm", "gaussian"]
+            else:
+                log("All sampling attempts failed, quitting...", 2)
+                exit(1)
             log("Samples file is empty. Retrying...", 2)
 
 
