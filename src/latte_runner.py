@@ -314,36 +314,55 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
     sample_command = [volesti_path,
                        canonicalized_ine, samples_file, "-n", str(n)]
 
-    stdout_lines = []
-    stderr_lines = []
+    samples_found = False
+    df = None
 
-    try:
-        with subprocess.Popen(sample_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
-            stdout_thread = threading.Thread(
-                target=stream_output, args=(proc.stdout, stdout_lines))
-            stderr_thread = threading.Thread(
-                target=stream_output, args=(proc.stderr, stderr_lines))
+    while not samples_found:
 
-            stdout_thread.start()
-            stderr_thread.start()
-            proc.wait(timeout=timeout)
-            stdout_thread.join()
-            stderr_thread.join()
+        stdout_lines = []
+        stderr_lines = []
 
+        try:
+            with subprocess.Popen(sample_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True) as proc:
+                stdout_thread = threading.Thread(
+                    target=stream_output, args=(proc.stdout, stdout_lines))
+                stderr_thread = threading.Thread(
+                    target=stream_output, args=(proc.stderr, stderr_lines))
+
+                stdout_thread.start()
+                stderr_thread.start()
+                proc.wait(timeout=timeout)
+                stdout_thread.join()
+                stderr_thread.join()
+
+                # Join the captured output
+                stdout = ''.join(stdout_lines)
+                stderr = ''.join(stderr_lines)
+
+
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        if os.path.exists(samples_file) and os.path.getsize(samples_file) > 0:
+            samples_found = True
             df = pd.read_csv(samples_file, sep=r'\s+', header=None)
             log(f"Sampled {df.shape[0]} points, dimensions {df.shape[1]}", 2)
             df = df.to_numpy()
-            return df
+            if df.shape[0] < n or pd.isna(df[0][0]):
+                log("Samples file is not correct. Retrying...", 2)
+                samples_found = False
 
-            # Join the captured output
-            stdout = ''.join(stdout_lines)
-            stderr = ''.join(stderr_lines)
+        else:
+            log("Samples file is empty. Retrying...", 2)
+
+
+    return df
 
 
 
-    except subprocess.CalledProcessError as e:
-        print(f"An error occurred: {e}", file=sys.stderr)
-        sys.exit(1)
+
+
 
 
 
