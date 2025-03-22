@@ -64,6 +64,9 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
       N = np.random.poisson(p*volume)
     log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}", 2)
     S = generate_samples(filenames[i], N, eps, delta)
+    if S is None:
+      log(f"Sampling failed, skipping", 2)
+      continue
     X.extend(S)
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 

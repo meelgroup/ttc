@@ -88,7 +88,7 @@ def canonicalize(input_file, ignore_lin_set=False):
     log(f"c [ttc] canonicalized array of size \
             {len(mat.array)}x{len(mat.array[0])} using cddlib", 2)
 
-    output_file = input_file.split('.')[0] + '.ine'
+    output_file = input_file.split('.')[0] + '.can.ine'
     result = write_h_representation(output_file, mat.array, mat.lin_set, ignore_lin_set)
     if result == 0:
         return -1

@@ -363,8 +363,8 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
             elif (attempts == 2):
                 sample_command = base_command + ["--algorithm", "gaussian"]
             else:
-                log("All sampling attempts failed, quitting...", 2)
-                exit(1)
+                log("All sampling attempts failed, no points to return!!!", 2)
+                return df
             log("Samples file is empty. Retrying...", 2)
 
 
