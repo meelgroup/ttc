@@ -49,6 +49,9 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
     polytope = Polytope.create_polytope_from_cube(
         cubes[i], mapping, filenames[i])
     volume = volume_of_polytope(filenames[i], eps, delta)
+    if volume <= 0:
+      log(f"Volume of polytope is zero, skipping", 2)
+      continue
     S = generate_samples(filenames[i], thresh*2, eps, delta)
     if S is not None:
       succesful_samples.append(i)
