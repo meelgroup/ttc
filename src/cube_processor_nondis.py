@@ -34,7 +34,9 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
   numcubes = len(cubes)
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)
-  thresh = max(12*math.log(24.0/delta)/(eps**2), 6.0*(math.log(6.0/delta) + math.log(numcubes)))
+  mvc_eps = eps/4
+  thresh = max(12*math.log(24.0/delta)/(mvc_eps**2), 6.0 *
+               (math.log(6.0/delta) + math.log(numcubes)))
   log(f"Threshold: {thresh}", 2)
   p = 1
   # X = [[float(format(0, ".3f")) for _ in range(dimensions)] for _ in range(int(thresh))]
