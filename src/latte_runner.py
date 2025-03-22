@@ -353,8 +353,15 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
             df = pd.read_csv(samples_file, sep=r'\s+', header=None)
             log(f"Sampled {df.shape[0]} points, dimensions {df.shape[1]}", 2)
             df = df.to_numpy()
-            if df.shape[0] < n or pd.isna(df[0][0]):
-                log("Samples file is not correct. Retrying...", 2)
+            if df.shape[0] < int(n) or pd.isna(df[0][0]):
+                log(f"Samples file is not correct. got {df.shape[0]}/{n} samples, first value {df[0][0]}/{pd.isna(df[0][0])} Retrying...", 2)
+                if (attempts == 1):
+                    sample_command = base_command + ["--algorithm", "accelarated"]
+                elif (attempts == 2):
+                    sample_command = base_command + ["--algorithm", "gaussian"]
+                else:
+                    log("All sampling attempts failed, no points to return!!!", 2)
+                    return df
                 samples_found = False
 
         else:

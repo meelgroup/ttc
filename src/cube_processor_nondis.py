@@ -39,11 +39,31 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
   p = 1
   # X = [[float(format(0, ".3f")) for _ in range(dimensions)] for _ in range(int(thresh))]
   X = []
+  polytopes = []
+  volumes = []
+  samples = []
+  succesful_samples = []
+  S = []
 
   for i in range(numcubes):
-    log(f"--- Processing cube {i+1}/{numcubes}", 2)
-    polytope = Polytope.create_polytope_from_cube(cubes[i], mapping, filenames[i])
+    polytope = Polytope.create_polytope_from_cube(
+        cubes[i], mapping, filenames[i])
     volume = volume_of_polytope(filenames[i], eps, delta)
+    S = generate_samples(filenames[i], thresh*2, eps, delta)
+    if S is not None:
+      succesful_samples.append(i)
+      samples.append(S)
+    else:
+      continue
+    polytopes.append(polytope)
+    volumes.append(volume)
+
+  log(f"Skipping {numcubes - len(succesful_samples)} polytopes out of {numcubes}", 2)
+
+  for i in range(len(polytopes)):
+    polytope = polytopes[i]
+    volume = volumes[i]
+    log(f"--- Processing cube {i+1}/{len(polytopes)}", 2)
     if volume <= 0:
       log(f"Volume of polytope is zero, skipping", 2)
       continue
@@ -63,10 +83,18 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
       p = p/2
       N = np.random.poisson(p*volume)
     log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}", 2)
-    S = generate_samples(filenames[i], N, eps, delta)
-    if S is None:
-      log(f"Sampling failed, skipping", 2)
-      continue
+    current_samples = samples[i]
+    if len(current_samples) >= N:
+      S = current_samples[:N]
+    else:
+      S = current_samples.copy()
+      remaining = N - len(S)
+      log(f"Generating {remaining} additional samples", 2)
+      additional_S = generate_samples(filenames[i], remaining, eps, delta)
+      if additional_S is None:
+        S = None
+      else:
+        S.extend(additional_S)
     X.extend(S)
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 
