@@ -1,3 +1,5 @@
+import time
+
 class GlobalStorage:
     cnf_file = ""
     dnf_file = ""
@@ -19,6 +21,12 @@ class GlobalStorage:
     disjoint = False
     # volesti_algo = "--seqball"
     volesti_walk_length = 5
+    starttime = 0
+
+    time_volumecomp = 0
+    time_decompose = 0
+    time_cvc5 = 0
+    time_pepin = 0
 
     def set_logic(self):
         with open(self.filename, 'r') as file:
@@ -50,6 +58,10 @@ class GlobalStorage:
             print(f"c [ttc] logic set to: {self.logic}")
         if self.logic == "lra":
             self.disjoint = _arg.disjoint
+        self.starttime = time.time()
+
+    def time(self):
+        return f"[{(time.time() - self.starttime):.3f} s]"
 
 
 gbl = GlobalStorage()

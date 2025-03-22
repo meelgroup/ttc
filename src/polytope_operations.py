@@ -55,7 +55,7 @@ def get_A_b_from_array(array):
 
 def write_h_representation(file_name, array, lin_set, ignore_lin_set=False):
     if len(lin_set) > 0 and not ignore_lin_set:
-        log(f"Warning: exists {len(lin_set)} equalities, d-dim volume is zero for this polytope", 1)
+        log(f"Warning: exists {len(lin_set)} equalities, d-dim volume is zero for this polytope", 2)
         return 0
     with open(file_name, 'w') as file:
       file.write("H-representation\n")
@@ -83,16 +83,16 @@ def canonicalize(input_file, ignore_lin_set=False):
 
     cdd.matrix_canonicalize(mat)
     log(f"c [ttc] canonicalizing array of size \
-            {len(array)}x{len(array[0])} using cddlib", 2)
+            {len(array)}x{len(array[0])} using cddlib", 3)
 
     log(f"c [ttc] canonicalized array of size \
-            {len(mat.array)}x{len(mat.array[0])} using cddlib", 2)
+            {len(mat.array)}x{len(mat.array[0])} using cddlib", 3)
 
     output_file = input_file.split('.')[0] + '.can.ine'
     result = write_h_representation(output_file, mat.array, mat.lin_set, ignore_lin_set)
     if result == 0:
         return -1
-    log(f"c [ttc] file {input_file} canonicalized to file {output_file}", 2)
+    log(f"c [ttc] file {input_file} canonicalized to file {output_file}", 3)
     return output_file
 
 

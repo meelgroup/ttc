@@ -10,7 +10,7 @@ from .polytope_bv import Polytope
 
 
 def volume_of_polytope(polytopefile, epsilon_prime, delta_prime):
-    log(f"Calculating volume of polytope {polytopefile}", 2)
+    log(f"Calculating volume of polytope {polytopefile}", 3)
     result = run_volesti_on_matrix(polytopefile)
     return result
 
@@ -41,11 +41,11 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
   X = []
   polytopes = []
   volumes = []
-  samples = []
-  succesful_samples = []
   S = []
   max_volume = 0
   num_zero_volume = 0
+
+  log(f"{gbl.time()} Getting volumes for {numcubes} cubes", 1)
 
   for i in range(numcubes):
     polytope = Polytope.create_polytope_from_cube(
@@ -55,25 +55,21 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
       log(f"Volume of polytope is zero, skipping", 2)
       num_zero_volume += 1
       continue
-    S = generate_samples(filenames[i], thresh*2, eps, delta)
-    if S is None:
-      continue
     polytopes.append(polytope)
     volumes.append(volume)
-    samples.append(S)
     if volume > max_volume:
       max_volume = volume
 
-  log(f"Skipping {num_zero_volume} polytopes out of {numcubes} where volume is zero", 2)
-  log(f"Skipping {numcubes - len(volumes) - num_zero_volume} polytopes out of {numcubes} where sampling failed", 2)
+  log(f"{gbl.time()} Got volumes for {numcubes} cubes", 1)
 
-  numeffectivecubes = len(samples)
+  log(f"Skipping {num_zero_volume} polytopes out of {numcubes} where volume is zero", 2)
+
+  numeffectivecubes = len(volumes)
   i = 0
   current_len = len(volumes)
   while i < current_len:
     if volumes[i] <= max_volume * 0.001:
       volumes.pop(i)
-      samples.pop(i)
       polytopes.pop(i)
     else:
       i += 1
@@ -81,12 +77,14 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
 
   log(f"Skipping {numeffectivecubes - len(volumes)} polytopes out of {numeffectivecubes} where volume is negligible", 2)
 
-
+  # num_remove_inside = 0
+  # num_remove_poiss_1 = 0
+  # num_remove_poiss_2 = 0
 
   for i in range(len(polytopes)):
     polytope = polytopes[i]
     volume = volumes[i]
-    log(f"--- Processing cube {i+1}/{len(polytopes)}", 2)
+    log(f"--- {gbl.time()} Processing cube {i+1}/{len(polytopes)}", 2)
     if volume <= 0:
       log(f"Volume of polytope is zero, skipping", 2)
       continue
@@ -106,18 +104,13 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
       p = p/2
       N = np.random.poisson(p*volume)
     log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}", 2)
-    current_samples = samples[i]
-    if len(current_samples) >= N:
-      S = current_samples[:N]
-    else:
-      S = current_samples.copy()
-      remaining = N - len(S)
-      log(f"Generating {remaining} additional samples", 2)
-      additional_S = generate_samples(filenames[i], remaining, eps, delta)
-      if additional_S is None:
-        S = None
-      else:
-        S.extend(additional_S)
+    if N == 0:
+      log(f"Number of samples asked for is zero, skipping", 2)
+      continue
+    S = generate_samples(filenames[i], N, eps, delta)
+    if S is None:
+      log(f"Sampling failed for polytope {i+1}, skipping!!!", 2)
+      continue
     X.extend(S)
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 

@@ -55,7 +55,7 @@ def convert_to_dnf(cnf_file):
         return convert_cnf_to_dnf(cnf_file)
 
 def convert_aig_to_dnf(aig_file):
-    log("Running AIG to DNF converter...", 2)
+    log(f"{gbl.time()} Running AIG to DNF converter...", 2)
     cubes_size = 0
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
@@ -70,7 +70,7 @@ def convert_aig_to_dnf(aig_file):
 
     command = [cnftranslate_path,  aig_file, "/mode",
                hall_algo, "/general/print_enumer", "1"]
-    log(f"Running Command: {' '.join(command)}", 2)
+    log(f"Running Command: {' '.join(command)}", 3)
 
     try:
         result = subprocess.run(
@@ -100,6 +100,7 @@ def convert_aig_to_dnf(aig_file):
     if gbl.cube_and_exit:
         print(f"c Number of cubes: {cubes_size}")
         exit(0)
+    log(f"{gbl.time()} Done running AIG to DNF converter", 2)
     return dnf_file
 
 

@@ -27,6 +27,7 @@ class CVC5Runner:
             raise RuntimeError(f"cvc5 error: {result.stderr}")
         log(f"cvc5 output: {result.stdout}", 4)
         self.cvcoutput = result.stdout
+        log(f"{gbl.time()} Done running cvc5", 2)
 
     def populate_variable_list_in_mapping(self):
         forbidden_atom_starts = ['not', 'let', 'and', 'or']
@@ -85,7 +86,7 @@ class CVC5Runner:
         #
 
         if gbl.dnfizer == "hall":
-            log(f"created AIG file: {aig_file_name}")
+            log(f"created AIG file: {aig_file_name}", 3)
             log(f"CNF literal to atoms Mapping (b|-A) for Ax<=b: \n{self.mapping}", 3)
         else:
             log(f"created CNF file: {cnf_file_name}")
@@ -95,6 +96,7 @@ class CVC5Runner:
             # dnf_file = convert_aig_to_dnf(aig_file_name)
             # cubes = parse_dnf_file(dnf_file)
             # print(f"DNF cubes: {cubes}")
-        log(f"parsed cvc5 output: {aig_file_name}", 2)
+        log(f"parsed cvc5 output: {aig_file_name}", 3)
+        log(f"{gbl.time()} Done parsing cvc5 output", 2)
 
         return self.mapping, aig_file_name

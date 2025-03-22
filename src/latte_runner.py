@@ -24,7 +24,7 @@ def stream_output(pipe, output_list):
 
 
 def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
-    log(f"Running {toolname}...", 2)
+    log(f"Running {toolname}...", 3)
     count_command = get_count_command(toolname)
     if isinstance(count_command, list):
         count_command.insert(1, matrix_file)
@@ -351,7 +351,7 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
         if os.path.exists(samples_file) and os.path.getsize(samples_file) > 0:
             samples_found = True
             df = pd.read_csv(samples_file, sep=r'\s+', header=None)
-            log(f"Sampled {df.shape[0]} points, dimensions {df.shape[1]}", 2)
+            log(f"Sampled {df.shape[0]} points, dimensions {df.shape[1]}", 3)
             df = df.to_numpy()
             if df.shape[0] < int(n) or pd.isna(df[0][0]):
                 log(f"Samples file is not correct. got {df.shape[0]}/{n} samples, first value {df[0][0]}/{pd.isna(df[0][0])} Retrying...", 2)

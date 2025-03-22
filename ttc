@@ -23,6 +23,8 @@ def ttc():
 
     final_result = process_cubes(cubes, mapping)
 
+    log(f"Total time: {(time.time() - gbl.starttime):.3f} s")
+
     if gbl.logic == "lia":
         resultstr = "s mc"
     else:
