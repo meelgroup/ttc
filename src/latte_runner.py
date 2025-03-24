@@ -95,7 +95,7 @@ def get_count_command(toolname):
                 f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
         volesti_command = [volesti_path, gbl.volesti_algo,
                            str(gbl.volesti_walk_length)]
-        volesti_command = [volesti_path]
+        volesti_command = [volesti_path, "--seed", str(gbl.seed)]
         # TODO: make this correct
         if "vp" in toolname:
             volesti_command.append("--vpoly")

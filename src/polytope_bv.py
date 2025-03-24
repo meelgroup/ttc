@@ -65,8 +65,8 @@ class Polytope:
 
     def is_in_polytope(self, point):
         tol = 1e-6
-        log(f"c [ttc->tobv] Checking if point {point} is in polytope", 3)
-        return np.all(np.dot(self.A, point) <= self.b + tol)
+        result = np.all(np.dot(-self.A, point) <= self.b + tol)
+        return result
 
 
 
