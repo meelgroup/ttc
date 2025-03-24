@@ -31,6 +31,7 @@ def generate_samples(polytopefile, n, epsilon_prime, delta_prime):
     return result
 
 def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
+  np.random.seed(gbl.seed)
   numcubes = len(cubes)
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)

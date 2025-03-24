@@ -27,6 +27,7 @@ class GlobalStorage:
     time_decompose = 0
     time_cvc5 = 0
     time_pepin = 0
+    seed = 123
 
     def set_logic(self):
         with open(self.filename, 'r') as file:
@@ -59,6 +60,7 @@ class GlobalStorage:
         if self.logic == "lra":
             self.disjoint = _arg.disjoint
         self.starttime = time.time()
+        self.seed = _arg.seed
 
     def time(self):
         return f"[{(time.time() - self.starttime):.3f} s]"

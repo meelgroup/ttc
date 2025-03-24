@@ -312,7 +312,7 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
             f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
     samples_file = matrix_file + ".samples"
     sample_command = [volesti_path,
-                       canonicalized_ine, samples_file, "-n", str(n)]
+                       canonicalized_ine, samples_file, "-n", str(n), "--seed", str(gbl.seed)]
 
     samples_found = False
     df = None

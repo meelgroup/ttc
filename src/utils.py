@@ -29,6 +29,8 @@ def get_arg_parser():
                         help='Limit on the number of decompositions.')
     parser.add_argument("-d", "--disjoint", action="store_true",
                         help='Use disjoint decomposition in LRA (disjoint is defualt in LIA).')
+    parser.add_argument("--seed", type=int, default=123,
+                        help='Random seed to use in random algorithms.')
 
     return parser
 
