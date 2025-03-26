@@ -32,6 +32,8 @@ def generate_samples(polytopefile, n, epsilon_prime, delta_prime):
 
 def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
   np.random.seed(gbl.seed)
+  random.seed(gbl.seed)
+
   numcubes = len(cubes)
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)
@@ -94,19 +96,20 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
     prevXlen = len(X)
     X = [s for s in X if not polytope.is_in_polytope(s)]
     log(f"Volume of polytope: {volume}", 2)
-    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}", 2)
+    log(
+        f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}  [inside this polytope]", 2)
     prevXlen = len(X)
     while (p*volume) > thresh:
       X = [s for s in X if random.random() >= 0.5]
       p = p/2
-    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}", 2)
+    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)} [make p < thresh/vol]", 2)
     prevXlen = len(X)
     N = np.random.poisson(p*volume)
     while (N + len(X)) > thresh:
       X = [s for s in X if random.random() >= 0.5]
       p = p/2
       N = np.random.poisson(p*volume)
-    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)}", 2)
+    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)} [make N + |X| < thresh]", 2)
     if N == 0:
       log(f"Number of samples asked for is zero, skipping", 2)
       continue
