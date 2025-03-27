@@ -1,4 +1,4 @@
-from .latte_runner import run_latte_on_matrix, run_volesti_on_matrix, run_bvcount_on_matrix
+from .latte_runner import run_latte_on_matrix, run_volesti_on_matrix, run_bvcount_on_matrix, run_tool_on_matrix
 from .count_by_opt import count_by_optimization_matrix
 from .decompose_polytope import decompose_polytope
 from .utils import *
@@ -6,6 +6,7 @@ import pandas as pd
 import sys
 from .global_storage import gbl
 from .cube_processor_nondis import process_cubes_nondisjoint
+from .polytope_bv import Polytope
 
 
 def process_cubes(cubes, mapping):
@@ -17,7 +18,8 @@ def process_cubes(cubes, mapping):
     ddim_zero = True
     i = 0
     for i, cube in enumerate(cubes):
-        log(f"Processing cube {i+1}/{len(cubes)}: {cube}", 2)
+        log(f"--- {gbl.time()} Processing cube {i+1}/{len(cubes)}", 2)
+        log(f"Cube {i+1}: {cube}", 3)
         # matrix_file = "matrix.tmp"
         # latte_file_name = gbl.filename.split("/")[-1]
         # latte_file_name = latte_file_name[:latte_file_name.rfind(
@@ -26,7 +28,9 @@ def process_cubes(cubes, mapping):
         # TODO good file name is not often accepted by latte!!
         # e.g., prime-cone_prime_cone_sat_5
         latte_file_name = f"matrix{i+1}.tmp"
-        create_polytope_from_cube(cube, mapping, latte_file_name)
+        polytope = Polytope.create_polytope_from_cube(
+            cubes[i], mapping, latte_file_name)
+        gbl.tempfiles.append(latte_file_name)
 
 
         if gbl.decompose_lim > 0:
@@ -40,7 +44,11 @@ def process_cubes(cubes, mapping):
         else:
             if gbl.logic == "lra":
                 assert (gbl.logic == "lra")
-                result = run_volesti_on_matrix(latte_file_name)
+                if gbl.exactvolume:
+                    result = run_tool_on_matrix(
+                        latte_file_name, toolname="latteintegrate")
+                else:
+                    result = run_volesti_on_matrix(latte_file_name)
                 if result >= 0:
                     ddim_zero = False
                 else:
@@ -55,8 +63,8 @@ def process_cubes(cubes, mapping):
                     result = count_by_optimization_matrix(latte_file_name)
                 else:
                     result = run_latte_on_matrix(latte_file_name)
-        log(f"Result from latte for cube {i+1}: {result}", 2)
+        log(f"Result from for cube {i+1}: {result}", 2)
         final_sum += result
     if ddim_zero and gbl.logic == "lra" and final_sum == 0:
         log(f"c vol is 0 because of equalities in all {i} cubes", 1)
-    return int(final_sum)
+    return (final_sum)

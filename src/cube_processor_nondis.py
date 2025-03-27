@@ -5,13 +5,18 @@ import pandas as pd
 
 from .utils import *
 from .global_storage import gbl
-from .latte_runner import run_volesti_on_matrix, run_volesti_sampling_on_matrix
+from .latte_runner import run_volesti_on_matrix, run_volesti_sampling_on_matrix, run_tool_on_matrix
 from .polytope_bv import Polytope
 
 
 def volume_of_polytope(polytopefile, epsilon_prime, delta_prime):
     log(f"Calculating volume of polytope {polytopefile}", 3)
-    result = run_volesti_on_matrix(polytopefile)
+    result = 0
+    if gbl.exactvolume:
+        result = run_tool_on_matrix(
+            polytopefile, toolname="latteintegrate")
+    else:
+        result = run_volesti_on_matrix(polytopefile)
     return result
 
 
@@ -33,11 +38,14 @@ def generate_samples(polytopefile, n, epsilon_prime, delta_prime):
 def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
   np.random.seed(gbl.seed)
   random.seed(gbl.seed)
-
+  mvc_eps = eps
   numcubes = len(cubes)
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)
-  mvc_eps = eps/4
+  if gbl.exactvolume:
+    mvc_eps = eps/2
+  else:
+    mvc_eps = eps
   thresh = max(12*math.log(24.0/delta)/(mvc_eps**2), 6.0 *
                (math.log(6.0/delta) + math.log(numcubes)))
   log(f"Threshold: {thresh}", 2)

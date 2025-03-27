@@ -16,6 +16,7 @@ def convert_cnf_to_dnf(cnf_file):
     cnftranslate_path = os.path.join(bin_dir, 'cnftranslate')
 
     dnf_file = cnf_file[:-4] + ".dnf"
+    gbl.tempfiles.append(dnf_file)
 
     command = [cnftranslate_path, cnf_file, dnf_file]
 
@@ -44,7 +45,6 @@ def convert_cnf_to_dnf(cnf_file):
         print(f"c Number of cubes: {cubes_size}")
         exit(0)
 
-    gbl.tempfiles.append(dnf_file)
 
     return dnf_file
 
@@ -65,6 +65,7 @@ def convert_aig_to_dnf(aig_file):
     cnftranslate_path = os.path.join(bin_dir, 'hall_tool')
 
     dnf_file = aig_file[:-4] + ".dnf"
+    gbl.tempfiles.append(dnf_file)
 
     hall_algo = "mars-nondis"
     if gbl.disjoint:

@@ -27,7 +27,10 @@ def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
     log(f"Running {toolname}...", 3)
     count_command = get_count_command(toolname)
     if isinstance(count_command, list):
-        count_command.insert(1, matrix_file)
+        if toolname == "latteintegrate":
+            count_command.append(matrix_file)
+        else:
+            count_command.insert(1, matrix_file)
     else:
         count_command = [count_command, matrix_file]
     log(f"{toolname} command:  {count_command}", 3)
@@ -100,6 +103,13 @@ def get_count_command(toolname):
         if "vp" in toolname:
             volesti_command.append("--vpoly")
         return volesti_command
+    elif toolname == "latteintegrate":
+        latte_path = os.path.expanduser("~/latte/bin/integrate")
+        if not os.path.isfile(latte_path):
+            raise FileNotFoundError(
+                f"{latte_path} does not exist. Please ensure that the tool is installed correctly.")
+        latte_path = [latte_path, "--valuation=volume"]
+        return latte_path
 
     else:
         raise ValueError(f"Unknown toolname: {toolname}")
@@ -107,13 +117,13 @@ def get_count_command(toolname):
 
 def handle_output(stdout_, stderr_, toolname):
     error_message = "is unbounded"
-    count = -1
+    count = -1.0
     empty_polytope_message = "Empty polytope or unbounded polytope!"
     if error_message in stdout_ or error_message in stderr_:
         log(
             "Unbounded polytope!\n TODO: Make sure this polytope is not empty", 0)
         sys.exit(0)
-    if empty_polytope_message in stdout_ or empty_polytope_message in stderr_:
+    if (empty_polytope_message in stdout_ or empty_polytope_message in stderr_):
         log("Empty polytope!", 3)
     elif toolname == "latte":
         with open("numOfLatticePoints", 'r') as f:
@@ -131,8 +141,20 @@ def handle_output(stdout_, stderr_, toolname):
         if count == -1:
             print(stdout_)
             raise ValueError("Volume line not found in output")
+    elif toolname == "latteintegrate":
+        for line in stdout_.splitlines():
+            if line.startswith("     Decimal"):
+                parts = line.split()
+                count = float(parts[1])
+                if count < 0:
+                    print(f"c WARNING: Volume is negative ({count})")
+                break
+        if count == -1:
+            print(stdout_)
+            raise ValueError("Volume line not found in output")
     else:
         raise ValueError(f"Unknown toolname: {toolname}")
+
     return count
 
 

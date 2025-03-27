@@ -6,15 +6,20 @@ import numpy as np
 import random
 import string
 import pandas as pd
+import time
 
 
 def get_arg_parser():
     parser = argparse.ArgumentParser(
-        description="Convert SMT-LIB 2 constraints to matrix form using cvc5.")
+        description="This is the TTC, Toolbox for Theory Counting.")
     parser.add_argument('smt_file', type=str,
                         help='Path to the SMT-LIB 2 file.')
     parser.add_argument('-v', '--verbosity', type=int,
                         default=0, help='Set verbosity level.')
+    parser.add_argument("-d", "--disjoint", action="store_true",
+                        help='Use disjoint decomposition in LRA (disjoint is defualt in LIA).')
+    parser.add_argument("-e", "--exactvol", action="store_true",
+                        help='Use exact volume computation for polytopes with LattE.')
     parser.add_argument("--nohall", action="store_true",
                         help='Use the Karnaugh map extension to convert CNF to DNF, default is HALL tool.')
     parser.add_argument("--cubes", action="store_true",
@@ -27,8 +32,6 @@ def get_arg_parser():
                         help='Count lattice points by solving optimization.')
     parser.add_argument("-l", "--decomposelim", type=int, default=0,
                         help='Limit on the number of decompositions.')
-    parser.add_argument("-d", "--disjoint", action="store_true",
-                        help='Use disjoint decomposition in LRA (disjoint is defualt in LIA).')
     parser.add_argument("--seed", type=int, default=123,
                         help='Random seed to use in random algorithms.')
     parser.add_argument("--dontdelete", action="store_true",
@@ -61,6 +64,13 @@ def check_existence_of_tools(tools):
 def write_matrix_to_file(matrix, output_file):
     log(f"Writing matrix to file: {output_file}", 4)
     matrix_array = matrix.to_numpy()
+    if gbl.exactvolume:
+        # Convert to integer representation
+        if np.all(matrix_array % 1 == 0):
+            matrix_array = matrix_array.astype(int)
+        else:
+            matrix_array = matrix_array* 1000000
+            matrix_array = matrix_array.astype(int)
 
     # Get the size of the matrix
     num_constraints, num_variables = matrix_array.shape

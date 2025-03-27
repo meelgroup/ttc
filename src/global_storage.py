@@ -13,6 +13,8 @@ class GlobalStorage:
     cube_and_exit = False
     arg = None
     logic = ""
+
+    # options
     usebv = False
     usepact = False
     useoptcnt = False
@@ -22,7 +24,11 @@ class GlobalStorage:
     # volesti_algo = "--seqball"
     volesti_walk_length = 5
     starttime = 0
-    tempfiles = []
+    tempfiles = ["tri.ead", "tri.iad", "tri.ecd",
+                 "tri.icd", "tri.ine", "tri.ext",
+                 "Check_emp.lps", "Check_emp.out",
+                 "Check_emp.lp", "numOfLatticePoints"]
+    exactvolume = False
 
     time_volumecomp = 0
     time_decompose = 0
@@ -64,9 +70,12 @@ class GlobalStorage:
             print(f"c [ttc] logic set to: {self.logic}")
         if self.logic == "lra":
             self.disjoint = _arg.disjoint
+        else:
+            self.disjoint = True
         self.starttime = time.time()
         self.seed = _arg.seed
         self.dontdelete = _arg.dontdelete
+        self.exactvolume = _arg.exactvol
 
     def time(self):
         return f"[{(time.time() - self.starttime):.3f} s]"
