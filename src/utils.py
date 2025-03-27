@@ -70,6 +70,14 @@ def write_matrix_to_file(matrix, output_file):
         for row in matrix_array:
             f.write(" ".join(map(str, row)) + "\n")
 
+def print_final_result(final_result):
+    log(f"Total time: {(time.time() - gbl.starttime):.3f} s")
+
+    if gbl.logic == "lia":
+        resultstr = "s mc"
+    else:
+        resultstr = "s vol"
+    print(f"{resultstr} {final_result}")
 
 def log(message, level=1):
     if gbl.verbosity >= level:
