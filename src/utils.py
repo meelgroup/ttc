@@ -15,8 +15,8 @@ def get_arg_parser():
                         help='Path to the SMT-LIB 2 file.')
     parser.add_argument('-v', '--verbosity', type=int,
                         default=0, help='Set verbosity level.')
-    parser.add_argument("--hall", action="store_true",
-                        help='Use the HALL tool to convert CNF to DNF, default is Karnaugh map extension.')
+    parser.add_argument("--nohall", action="store_true",
+                        help='Use the Karnaugh map extension to convert CNF to DNF, default is HALL tool.')
     parser.add_argument("--cubes", action="store_true",
                         help='Decompose into cubes and exit.')
     parser.add_argument("--intbv", action="store_true", default=False,
@@ -31,6 +31,8 @@ def get_arg_parser():
                         help='Use disjoint decomposition in LRA (disjoint is defualt in LIA).')
     parser.add_argument("--seed", type=int, default=123,
                         help='Random seed to use in random algorithms.')
+    parser.add_argument("--dontdelete", action="store_true",
+                        help='Do not delete temporary files.')
 
     return parser
 
@@ -55,16 +57,6 @@ def check_existence_of_tools(tools):
         if not os.access(tool_path, os.X_OK):
             raise EnvironmentError(
                 f"{tool} is not executable in the 'bin' directory.")
-
-
-def set_cnf_to_dnf_tool(use_hall):
-    if use_hall:
-        gbl.cnf_to_dnf_tool = 'hall'
-        gbl.tool_list.append('hall_tool')
-    else:
-        gbl.cnf_to_dnf_tool = 'cnftranslate'
-        gbl.tool_list.append('cnftranslate')
-
 
 def write_matrix_to_file(matrix, output_file):
     log(f"Writing matrix to file: {output_file}", 4)
@@ -104,6 +96,16 @@ def create_all_polytope_files(cubes, mapping):
     log(f"Created {len(filenames)} polytope files", 2)
     return filenames
 
-
+def cleanup():
+    if gbl.dontdelete:
+        log("Skipping cleanup as --dontdelete is set", 3)
+        return
+    files = gbl.tempfiles
+    log("Cleaning up...", 3)
+    for file in files:
+        if os.path.exists(file):
+            os.remove(file)
+            log(f"Removed {file}", 4)
+    log("Cleaned up.", 3)
 
 

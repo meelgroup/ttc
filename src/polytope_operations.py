@@ -2,6 +2,7 @@ import cdd
 from .utils import log
 from pprint import pprint
 import numpy as np
+from .global_storage import gbl
 """
 This module provides functions to read, write, and canonicalize H-representations of polytopes.
 
@@ -93,6 +94,8 @@ def canonicalize(input_file, ignore_lin_set=False):
     if result == 0:
         return -1
     log(f"c [ttc] file {input_file} canonicalized to file {output_file}", 3)
+    gbl.tempfiles.append(input_file)
+    gbl.tempfiles.append(output_file)
     return output_file
 
 

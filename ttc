@@ -7,7 +7,6 @@ def ttc():
     args = parser.parse_args()
 
     gbl.initialize(args)
-    set_cnf_to_dnf_tool(args.hall)
 
     check_existence_of_smt_file(args.smt_file)
     check_existence_of_tools(gbl.tool_list)
@@ -30,6 +29,8 @@ def ttc():
     else:
         resultstr = "s vol"
     print(f"{resultstr} {final_result}")
+
+    cleanup()
 
 
 if __name__ == "__main__":

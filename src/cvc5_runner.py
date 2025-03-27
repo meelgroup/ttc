@@ -98,5 +98,7 @@ class CVC5Runner:
             # print(f"DNF cubes: {cubes}")
         log(f"parsed cvc5 output: {aig_file_name}", 3)
         log(f"{gbl.time()} Done parsing cvc5 output", 2)
+        gbl.tempfiles.append(cnf_file_name)
+        gbl.tempfiles.append(aig_file_name)
 
         return self.mapping, aig_file_name

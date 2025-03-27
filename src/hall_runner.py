@@ -44,6 +44,8 @@ def convert_cnf_to_dnf(cnf_file):
         print(f"c Number of cubes: {cubes_size}")
         exit(0)
 
+    gbl.tempfiles.append(dnf_file)
+
     return dnf_file
 
 

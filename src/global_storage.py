@@ -22,12 +22,14 @@ class GlobalStorage:
     # volesti_algo = "--seqball"
     volesti_walk_length = 5
     starttime = 0
+    tempfiles = []
 
     time_volumecomp = 0
     time_decompose = 0
     time_cvc5 = 0
     time_pepin = 0
     seed = 123
+    dontdelete = False
 
     def set_logic(self):
         with open(self.filename, 'r') as file:
@@ -48,8 +50,11 @@ class GlobalStorage:
         self.verbosity = _arg.verbosity
         self.filename = _arg.smt_file
         self.set_logic()
-        if not _arg.hall:
+        if _arg.nohall:
             self.dnfizer = "cnftranslate"
+            self.tool_list.append('cnftranslate')
+        else:
+            self.tool_list.append('hall_tool')
         self.decompose_lim = _arg.decomposelim
         self.cube_and_exit = _arg.cubes
         self.usebv = _arg.intbv
@@ -61,6 +66,7 @@ class GlobalStorage:
             self.disjoint = _arg.disjoint
         self.starttime = time.time()
         self.seed = _arg.seed
+        self.dontdelete = _arg.dontdelete
 
     def time(self):
         return f"[{(time.time() - self.starttime):.3f} s]"

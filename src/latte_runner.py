@@ -374,7 +374,7 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
                 return df
             log("Samples file is empty. Retrying...", 2)
 
-
+    gbl.tempfiles.append(samples_file)
     return df
 
 
