@@ -36,6 +36,10 @@ def get_arg_parser():
                         help='Random seed to use in random algorithms.')
     parser.add_argument("--dontdelete", action="store_true",
                         help='Do not delete temporary files.')
+    parser.add_argument("--eps", type=float, default=0.8,
+                        help='Epsilon value for the approximation algorithm.')
+    parser.add_argument("--delta", type=float, default=0.2,
+                        help='Delta value for the approximation algorithm.')
 
     return parser
 

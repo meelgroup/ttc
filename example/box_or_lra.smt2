@@ -5,6 +5,6 @@
 (declare-const y Real)
 
 (assert (or (and (> x 10) (< x 30) (> y 10) (< y 30))
-            (and (> x 15) (< x 35) (> y 15) (< y 35))))
+            (and (> x 20) (< x 40) (> y 20) (< y 40))))
 
 (check-sat)

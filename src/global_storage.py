@@ -13,6 +13,8 @@ class GlobalStorage:
     cube_and_exit = False
     arg = None
     logic = ""
+    epsilon = 0.8
+    delta = 0.2
 
     # options
     usebv = False
@@ -76,6 +78,8 @@ class GlobalStorage:
         self.seed = _arg.seed
         self.dontdelete = _arg.dontdelete
         self.exactvolume = _arg.exactvol
+        self.epsilon = _arg.eps
+        self.delta = _arg.delta
 
     def time(self):
         return f"[{(time.time() - self.starttime):.3f} s]"

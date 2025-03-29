@@ -12,7 +12,7 @@ class CVC5Runner:
         self.mapping = LiteralMapping()
 
     def run_cvc5_on_smt_file(self):
-        log(f"Running cvc5 on {self.smt_file}", 1)
+        log(f"{gbl.time()} Running cvc5 on {self.smt_file}", 1)
         script_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(script_dir)
         bin_dir = os.path.join(parent_dir, 'bin')
@@ -27,11 +27,11 @@ class CVC5Runner:
             raise RuntimeError(f"cvc5 error: {result.stderr}")
         log(f"cvc5 output: {result.stdout}", 4)
         self.cvcoutput = result.stdout
-        log(f"{gbl.time()} Done running cvc5", 2)
+        log(f"{gbl.time()} Done running cvc5, parsing the output to get atoms", 2)
 
     def populate_variable_list_in_mapping(self):
         forbidden_atom_starts = ['not', 'let', 'and', 'or']
-        log("Parsing cvc5 output to get the variable list", 1)
+        log("Parsing cvc5 output to get the variable list", 3)
         pcnfread = False
         if self.cvcoutput is None:
             raise ValueError(
@@ -61,7 +61,7 @@ class CVC5Runner:
 
     def parse_cvc5_output(self):
         self.populate_variable_list_in_mapping()
-        log("Parsing cvc5 output", 1)
+        log("Parsing cvc5 output", 3)
         cnf_lines = []
         pcnfread = False
         # cnffilename replace the last.smth2 with .cnf

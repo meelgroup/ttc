@@ -50,7 +50,7 @@ def convert_cnf_to_dnf(cnf_file):
 
 
 def convert_to_dnf(cnf_file):
-    log(f"c Using {gbl.dnfizer} to convert CNF to DNF", 1)
+    log(f"c Using {gbl.dnfizer} to convert CNF to DNF", 3)
     if gbl.dnfizer == "hall":
         return convert_aig_to_dnf(cnf_file)
     else:
@@ -103,12 +103,12 @@ def convert_aig_to_dnf(aig_file):
     if gbl.cube_and_exit:
         print(f"c Number of cubes: {cubes_size}")
         exit(0)
-    log(f"{gbl.time()} Done running AIG to DNF converter", 2)
+    log(f"{gbl.time()} Done running AIG to DNF converter, parsing DNF to get cubes", 2)
     return dnf_file
 
 
 def parse_dnf_file(dnf_file):
-    log("Parsing DNF content", 1)
+    log("Parsing DNF content", 3)
     cubes = []
     dnf = open(dnf_file, 'r')
     dnf = dnf.read()

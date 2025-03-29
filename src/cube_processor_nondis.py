@@ -27,28 +27,38 @@ def create_all_polytope_filenames(num):
     for i in range(num):
         filename = f"{random_prefix}_cube{i+1}.ine"
         filenames.append(filename)
-    log(f"Created {len(filenames)} polytope files", 2)
+    log(f"{gbl.time()} Created {len(filenames)} polytope files", 2)
     return filenames
 
-def generate_samples(polytopefile, n, epsilon_prime, delta_prime):
+def generate_samples(polytopefile, n, precision):
     log(f"Generating samples for polytope {polytopefile}", 3)
     result = run_volesti_sampling_on_matrix(polytopefile, n)
     return result
 
-def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
+
+def get_precision_from_cubes(dim,cubes):
+    facet = len(cubes[0])
+    precision = 1
+    for cube in cubes:
+        precision_this = math.ceil(8*dim*math.sqrt(math.log(facet)))
+        if precision_this > precision:
+            precision = precision_this
+    return precision
+
+def process_cubes_nondisjoint(cubes, mapping):
   np.random.seed(gbl.seed)
   random.seed(gbl.seed)
-  mvc_eps = eps
+  mvc_eps = gbl.epsilon / 100
+  volume_eps = gbl.epsilon / 2
+  delta = gbl.delta
   numcubes = len(cubes)
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)
   if gbl.exactvolume:
-    mvc_eps = eps/2
-  else:
-    mvc_eps = eps
+    mvc_eps = gbl.epsilon / 2
   thresh = max(12*math.log(24.0/delta)/(mvc_eps**2), 6.0 *
                (math.log(6.0/delta) + math.log(numcubes)))
-  log(f"Threshold: {thresh}", 2)
+  log(f"{gbl.time()} Starting Union Algorithm, Threshold: {thresh}", 2)
   p = 1
   # X = [[float(format(0, ".3f")) for _ in range(dimensions)] for _ in range(int(thresh))]
   X = []
@@ -57,13 +67,15 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
   S = []
   max_volume = 0
   num_zero_volume = 0
+  dimensions = 2
+  precision = get_precision_from_cubes(dimensions, cubes)
 
   log(f"{gbl.time()} Getting volumes for {numcubes} cubes", 1)
 
   for i in range(numcubes):
     polytope = Polytope.create_polytope_from_cube(
         cubes[i], mapping, filenames[i])
-    volume = volume_of_polytope(filenames[i], eps, delta)
+    volume = volume_of_polytope(filenames[i], volume_eps, delta)
     if volume <= 0:
       log(f"Volume of polytope is zero, skipping", 2)
       num_zero_volume += 1
@@ -75,7 +87,8 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
 
   log(f"{gbl.time()} Got volumes for {numcubes} cubes", 1)
 
-  log(f"Skipping {num_zero_volume} polytopes out of {numcubes} where volume is zero", 2)
+  if num_zero_volume > 0:
+    log(f"Skipping {num_zero_volume} polytopes out of {numcubes} where volume is zero", 2)
 
   numeffectivecubes = len(volumes)
   i = 0
@@ -87,8 +100,8 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
     else:
       i += 1
     current_len = len(volumes)
-
-  log(f"Skipping {numeffectivecubes - len(volumes)} polytopes out of {numeffectivecubes} where volume is negligible", 2)
+  if len(volumes) < numeffectivecubes:
+    log(f"Skipping {numeffectivecubes - len(volumes)} polytopes out of {numeffectivecubes} where volume is negligible", 2)
 
   # num_remove_inside = 0
   # num_remove_poiss_1 = 0
@@ -121,11 +134,11 @@ def process_cubes_nondisjoint(cubes, mapping, eps = 0.8, delta = 0.2):
     if N == 0:
       log(f"Number of samples asked for is zero, skipping", 2)
       continue
-    S = generate_samples(filenames[i], N, eps, delta)
+    S = generate_samples(filenames[i], N, precision)
     if S is None:
       log(f"Sampling failed for polytope {i+1}, skipping!!!", 2)
       continue
     X.extend(S)
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 
-  return len(X)/p
+  return len(X)/(p)
