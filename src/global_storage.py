@@ -21,6 +21,7 @@ class GlobalStorage:
     logic = ""
     epsilon = 0.8
     delta = 0.2
+    volepsfrac = 0.5
 
     # options
     usebv = False
@@ -44,6 +45,7 @@ class GlobalStorage:
     time_pepin = 0
     seed = 123
     dontdelete = False
+    voleps = 0.2
 
     def set_logic(self):
         with open(self.filename, 'r') as file:
@@ -75,6 +77,7 @@ class GlobalStorage:
         self.usebv = _arg.intbv
         self.usepact = _arg.pact
         self.useoptcnt = _arg.optcnt
+        self.volepsfrac = _arg.volepsfrac
 
         if self.logic == "lra":
             self.disjoint = _arg.disjoint

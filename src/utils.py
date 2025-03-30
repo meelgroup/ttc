@@ -41,6 +41,8 @@ def get_arg_parser():
                         help='Epsilon value for the approximation algorithm.')
     parser.add_argument("--delta", type=float, default=0.2,
                         help='Delta value for the approximation algorithm.')
+    parser.add_argument("--volepsfrac", type=float, default=0.5,
+                        help='Epsilon value multiplier for the volume approximation algorithm.')
 
     return parser
 

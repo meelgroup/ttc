@@ -16,7 +16,7 @@ def volume_of_polytope(polytopefile, epsilon_prime, delta_prime):
         result = run_tool_on_matrix(
             polytopefile, toolname="latteintegrate")
     else:
-        result = run_volesti_on_matrix(polytopefile)
+        result = run_volesti_on_matrix(polytopefile, epsilon_prime)
     return result
 
 
@@ -49,7 +49,7 @@ def process_cubes_nondisjoint(cubes, mapping):
   np.random.seed(gbl.seed)
   random.seed(gbl.seed)
   mvc_eps = gbl.epsilon / 2
-  volume_eps = gbl.epsilon / 2
+  volume_eps = gbl.epsilon * gbl.volepsfrac  / 2
   delta = gbl.delta
   numcubes = len(cubes)
   filenames = create_all_polytope_filenames(numcubes)
@@ -69,14 +69,13 @@ def process_cubes_nondisjoint(cubes, mapping):
   num_zero_volume = 0
   dimensions = 2
   precision = get_precision_from_cubes(dimensions, cubes)
-  multiplier = 1
 
   log(f"{gbl.time()} Getting volumes for {numcubes} cubes", 1)
 
   for i in range(numcubes):
     polytope = Polytope.create_polytope_from_cube(
         cubes[i], mapping, filenames[i])
-    volume = volume_of_polytope(filenames[i], volume_eps, delta)*multiplier
+    volume = volume_of_polytope(filenames[i], volume_eps, delta)
     if volume <= 0:
       log(f"Volume of polytope is zero, skipping", 2)
       num_zero_volume += 1
@@ -143,4 +142,4 @@ def process_cubes_nondisjoint(cubes, mapping):
     X.extend(S)
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 
-  return len(X)/(p*multiplier)
+  return len(X)/(p)

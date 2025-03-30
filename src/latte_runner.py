@@ -98,7 +98,7 @@ def get_count_command(toolname):
                 f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
         volesti_command = [volesti_path, gbl.volesti_algo,
                            str(gbl.volesti_walk_length)]
-        volesti_command = [volesti_path, "--seed", str(gbl.seed)]
+        volesti_command = [volesti_path, "--seed", str(gbl.seed), "--epsilon", str(gbl.voleps)]
         # TODO: make this correct
         if "vp" in toolname:
             volesti_command.append("--vpoly")
@@ -296,8 +296,9 @@ def convert_latte_to_polytope(matrix_file, type="vpolytope"):
     return ext_file
 
 
-def run_volesti_on_matrix(matrix_file, timeout=3600):
+def run_volesti_on_matrix(matrix_file, epsilon = 0.2,  timeout=3600):
     use_vpolytope = False
+    gbl.voleps = epsilon
     if use_vpolytope:
         ext_file = convert_latte_to_polytope(matrix_file, type="vpolytope")
         with open(ext_file, 'r') as f:
