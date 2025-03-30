@@ -98,7 +98,7 @@ def get_git_commit_id():
 
 def print_banner(args):
     log("c TTC - Toolbox for Theory Counting", 1)
-    log(f"c Git Version: {get_git_commit_id()}", 1)
+    # log(f"c Git Version: {get_git_commit_id()}", 1)
     statem  = " ".join(args)
     log(f"c Run with command {statem}", 1)
     if gbl.logic == "lra":
