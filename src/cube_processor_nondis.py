@@ -91,18 +91,19 @@ def process_cubes_nondisjoint(cubes, mapping):
   if num_zero_volume > 0:
     log(f"Skipping {num_zero_volume} polytopes out of {numcubes} where volume is zero", 2)
 
-  numeffectivecubes = len(volumes)
-  i = 0
-  current_len = len(volumes)
-  while i < current_len:
-    if volumes[i] <= max_volume * 0.001:
-      volumes.pop(i)
-      polytopes.pop(i)
-    else:
-      i += 1
-    current_len = len(volumes)
-  if len(volumes) < numeffectivecubes:
-    log(f"Skipping {numeffectivecubes - len(volumes)} polytopes out of {numeffectivecubes} where volume is negligible", 2)
+  # numeffectivecubes = len(volumes)
+  # i = 0
+  # current_len = len(volumes)
+  # while i < current_len:
+  #   if volumes[i] <= max_volume * 0.001:
+  #     log(f"Volume of polytope {i} is negligible ({volumes[i]}), skipping", 2)
+  #     volumes.pop(i)
+  #     polytopes.pop(i)
+  #   else:
+  #     i += 1
+  #   current_len = len(volumes)
+  # if len(volumes) < numeffectivecubes:
+  #   log(f"Skipping {numeffectivecubes - len(volumes)} polytopes out of {numeffectivecubes} where volume is negligible", 2)
 
   # num_remove_inside = 0
   # num_remove_poiss_1 = 0
@@ -142,4 +143,4 @@ def process_cubes_nondisjoint(cubes, mapping):
     X.extend(S)
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 
-  return len(X)/(p)
+  return len(X)/(p*multiplier)
