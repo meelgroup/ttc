@@ -111,8 +111,9 @@ def print_banner(args):
 def print_final_result(final_result):
     log(f"Total time: {(time.time() - gbl.starttime):.3f} s")
 
-    logval = math.log10(final_result)
-    print(f"c s log10-estimate {logval:.3f}")
+    if final_result > 0:
+        logval = math.log10(final_result)
+        print(f"c s log10-estimate {logval:.3f}")
 
     if gbl.logic == "lia":
         resultstr = "s mc"
