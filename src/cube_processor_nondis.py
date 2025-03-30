@@ -55,7 +55,7 @@ def process_cubes_nondisjoint(cubes, mapping):
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)
   if gbl.exactvolume:
-    mvc_eps = gbl.epsilon / 2
+    mvc_eps = gbl.epsilon
   thresh = max(12*math.log(24.0/delta)/(mvc_eps**2), 6.0 *
                (math.log(6.0/delta) + math.log(numcubes)))
   log(f"{gbl.time()} Starting Union Algorithm, Threshold: {thresh}", 2)
