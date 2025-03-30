@@ -7,6 +7,7 @@ import random
 import string
 import pandas as pd
 import time
+import math
 
 
 def get_arg_parser():
@@ -44,9 +45,7 @@ def get_arg_parser():
     return parser
 
 
-def check_existence_of_smt_file(smt_file):
-    if not os.path.exists(smt_file):
-        raise FileNotFoundError(f"c Input file not found in {smt_file}")
+
 
 
 def check_existence_of_tools(tools):
@@ -84,8 +83,34 @@ def write_matrix_to_file(matrix, output_file):
         for row in matrix_array:
             f.write(" ".join(map(str, row)) + "\n")
 
+
+def get_git_commit_id():
+    try:
+        # Run the command and decode the byte output to a string
+        commit_id = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"]).strip().decode('utf-8')
+    except subprocess.CalledProcessError:
+        commit_id = "unknown"
+    return commit_id[:10]
+
+
+def print_banner(args):
+    log("c TTC - Toolbox for Theory Counting", 1)
+    log(f"c Git Version: {get_git_commit_id()}", 1)
+    statem  = " ".join(args)
+    log(f"c Run with command {statem}", 1)
+    if gbl.logic == "lra":
+        logic = "QF_LRA"
+    elif gbl.logic == "lia":
+        logic = "QF_LIA"
+    print(f"c Logic set to: {logic}")
+
+
 def print_final_result(final_result):
     log(f"Total time: {(time.time() - gbl.starttime):.3f} s")
+
+    logval = math.log10(final_result)
+    print(f"c s log10-estimate {logval:.3f}")
 
     if gbl.logic == "lia":
         resultstr = "s mc"

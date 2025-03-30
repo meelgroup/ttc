@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 from src import *
+import sys
 
 
 def ttc():
+
     parser = get_arg_parser()
     args = parser.parse_args()
 
     gbl.initialize(args)
+    print_banner(sys.argv)
 
-    check_existence_of_smt_file(args.smt_file)
     check_existence_of_tools(gbl.tool_list)
 
     cvcrunner = CVC5Runner(args.smt_file)

@@ -1,4 +1,9 @@
 import time
+import os
+
+def check_existence_of_smt_file(smt_file):
+    if not os.path.exists(smt_file):
+        raise FileNotFoundError(f"c Input file not found in {smt_file}")
 
 class GlobalStorage:
     cnf_file = ""
@@ -7,6 +12,7 @@ class GlobalStorage:
     matrix_file = ""
     verbosity = 0
     decompose_lim = 0
+    dimension = 0
     # tool_list = ['cvc5', 'hall', 'latte']
     tool_list = ['cvc5']
     dnfizer = "hall"
@@ -54,6 +60,7 @@ class GlobalStorage:
 
     # defining the class constructor
     def initialize(self, _arg):
+        check_existence_of_smt_file(_arg.smt_file)
         self.arg = _arg
         self.verbosity = _arg.verbosity
         self.filename = _arg.smt_file
@@ -68,8 +75,7 @@ class GlobalStorage:
         self.usebv = _arg.intbv
         self.usepact = _arg.pact
         self.useoptcnt = _arg.optcnt
-        if self.verbosity > 0:
-            print(f"c [ttc] logic set to: {self.logic}")
+
         if self.logic == "lra":
             self.disjoint = _arg.disjoint
         else:

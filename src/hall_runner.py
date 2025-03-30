@@ -57,7 +57,7 @@ def convert_to_dnf(cnf_file):
         return convert_cnf_to_dnf(cnf_file)
 
 def convert_aig_to_dnf(aig_file):
-    log(f"{gbl.time()} Running AIG to DNF converter...", 2)
+    log(f"{gbl.time()} Running AIG to DNF converter...", 1)
     cubes_size = 0
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
@@ -103,7 +103,7 @@ def convert_aig_to_dnf(aig_file):
     if gbl.cube_and_exit:
         print(f"c Number of cubes: {cubes_size}")
         exit(0)
-    log(f"{gbl.time()} Done running AIG to DNF converter, parsing DNF to get cubes", 2)
+    log(f"{gbl.time()} Done running AIG to DNF converter, parsing DNF to get cubes", 1)
     return dnf_file
 
 

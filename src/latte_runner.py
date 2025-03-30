@@ -324,6 +324,12 @@ def run_bvcount_on_matrix(matrix_file, encoding = "bv", timeout=3600):
 
 
 def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
+    if n <= 0:
+        log(f"c [ttc->sampling] asked to sample no points", 2)
+        df = pd.DataFrame()
+        return df
+    else:
+        log(f"{gbl.time()} Generating {n} points", 2)
     canonicalized_ine = canonicalize(matrix_file)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)

@@ -48,7 +48,7 @@ def get_precision_from_cubes(dim,cubes):
 def process_cubes_nondisjoint(cubes, mapping):
   np.random.seed(gbl.seed)
   random.seed(gbl.seed)
-  mvc_eps = gbl.epsilon / 100
+  mvc_eps = gbl.epsilon / 2
   volume_eps = gbl.epsilon / 2
   delta = gbl.delta
   numcubes = len(cubes)
@@ -69,13 +69,14 @@ def process_cubes_nondisjoint(cubes, mapping):
   num_zero_volume = 0
   dimensions = 2
   precision = get_precision_from_cubes(dimensions, cubes)
+  multiplier = 1
 
   log(f"{gbl.time()} Getting volumes for {numcubes} cubes", 1)
 
   for i in range(numcubes):
     polytope = Polytope.create_polytope_from_cube(
         cubes[i], mapping, filenames[i])
-    volume = volume_of_polytope(filenames[i], volume_eps, delta)
+    volume = volume_of_polytope(filenames[i], volume_eps, delta)*multiplier
     if volume <= 0:
       log(f"Volume of polytope is zero, skipping", 2)
       num_zero_volume += 1
@@ -123,7 +124,7 @@ def process_cubes_nondisjoint(cubes, mapping):
     while (p*volume) > thresh:
       X = [s for s in X if random.random() >= 0.5]
       p = p/2
-    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)} [make p < thresh/vol]", 2)
+    log(f"Number of points in X: {len(X)}, removed {prevXlen - len(X)} [make p ({p}) < thresh/vol]", 2)
     prevXlen = len(X)
     N = np.random.poisson(p*volume)
     while (N + len(X)) > thresh:
