@@ -67,7 +67,7 @@ def convert_aig_to_dnf(aig_file):
     dnf_file = aig_file[:-4] + ".dnf"
     gbl.tempfiles.append(dnf_file)
 
-    hall_algo = "mars-nondis"
+    hall_algo = "roc"
     if gbl.disjoint:
         hall_algo = "mars-dis"
 
