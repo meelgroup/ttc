@@ -12,7 +12,7 @@ from .component_count import process_cubes_componentcount
 
 def process_cubes(cubes, mapping):
     if gbl.count_disjoint_components:
-        log("Processing cubes to count disjoint polytopes", 1)
+        log(f"{gbl.time()} Processing cubes to count disjoint polytopes", 1)
         return process_cubes_componentcount(cubes, mapping)
     if not gbl.disjoint:
         return process_cubes_nondisjoint(cubes, mapping)
