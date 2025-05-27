@@ -17,6 +17,7 @@ class GlobalStorage:
     tool_list = ['cvc5']
     dnfizer = "hall"
     cube_and_exit = False
+    count_disjoint_components = False
     arg = None
     logic = ""
     epsilon = 0.8
@@ -89,6 +90,7 @@ class GlobalStorage:
         self.exactvolume = _arg.exactvol
         self.epsilon = _arg.eps
         self.delta = _arg.delta
+        self.count_disjoint_components = _arg.countdisjoint
 
     def time(self):
         return f"[{(time.time() - self.starttime):.3f} s]"

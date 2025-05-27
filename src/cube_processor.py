@@ -7,9 +7,13 @@ import sys
 from .global_storage import gbl
 from .cube_processor_nondis import process_cubes_nondisjoint
 from .polytope_bv import Polytope
+from .component_count import process_cubes_componentcount
 
 
 def process_cubes(cubes, mapping):
+    if gbl.count_disjoint_components:
+        log("Processing cubes to count disjoint polytopes", 1)
+        return process_cubes_componentcount(cubes, mapping)
     if not gbl.disjoint:
         return process_cubes_nondisjoint(cubes, mapping)
     log("Processing cubes to get final result", 1)

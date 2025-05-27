@@ -104,7 +104,60 @@ class Polytope:
                                   for j in range(n)) <= self.b[i]
             solver.add(constraint)
             # log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)
+
         return solver
+
+    def to_smt_lra(self, solve=False):
+        solver = Solver()
+        n = self.A.shape[1]
+        x = [Real(f'x{i}') for i in range(n)]
+        for i in range(len(self.b)):
+            if i in self.equality_constraints:
+                constraint = sum(self.A[i][j] * x[j]
+                                 for j in range(n)) == self.b[i]
+            else:
+                constraint = sum(self.A[i][j] * x[j]
+                                 for j in range(n)) <= self.b[i]
+            solver.add(constraint)
+            # log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)\
+        if solve:
+            result = solver.check()
+            return result
+        return solver
+
+    def check_joint_satisfiability(self, other_polytope):
+        """
+        Check if the current polytope and another polytope are jointly satisfiable.
+        This is done by combining their constraints and checking satisfiability.
+        """
+        solver = Solver()
+        n1 = self.A.shape[1]
+        n2 = other_polytope.A.shape[1]
+        x1 = [Real(f'x1_{i}') for i in range(n1)]
+        x2 = [Real(f'x2_{i}') for i in range(n2)]
+
+        # Add constraints from the first polytope
+        for i in range(len(self.b)):
+            if i in self.equality_constraints:
+                constraint = sum(self.A[i][j] * x1[j]
+                                 for j in range(n1)) == self.b[i]
+            else:
+                constraint = sum(self.A[i][j] * x1[j]
+                                 for j in range(n1)) <= self.b[i]
+            solver.add(constraint)
+
+        # Add constraints from the second polytope
+        for i in range(len(other_polytope.b)):
+            if i in other_polytope.equality_constraints:
+                constraint = sum(other_polytope.A[i][j] * x2[j]
+                                 for j in range(n2)) == other_polytope.b[i]
+            else:
+                constraint = sum(other_polytope.A[i][j] * x2[j]
+                                 for j in range(n2)) <= other_polytope.b[i]
+            solver.add(constraint)
+
+        result = solver.check()
+        return result
 
     def to_smt2_file(self, filepath, encoding = "bv"):
         if encoding == "bv":

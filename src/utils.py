@@ -43,6 +43,8 @@ def get_arg_parser():
                         help='Delta value for the approximation algorithm.')
     parser.add_argument("--volepsfrac", type=float, default=0.5,
                         help='Epsilon value multiplier for the volume approximation algorithm.')
+    parser.add_argument("-c", "--countdisjoint", action="store_true",
+                        help='Count disjoint components in the solution space.')
 
     return parser
 
@@ -117,6 +119,8 @@ def print_final_result(final_result):
 
     if gbl.logic == "lia":
         resultstr = "s mc"
+    elif gbl.logic == "lra" and gbl.count_disjoint_components:
+        resultstr = "s disjoint-components"
     else:
         resultstr = "s vol"
     print(f"{resultstr} {final_result}")
