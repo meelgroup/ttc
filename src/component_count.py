@@ -34,11 +34,12 @@ def process_cubes_componentcount(cubes, mapping):
 
     # Create a graph where nodes are polytopes and edges represent joint satisfiability
     graph = defaultdict(list)
+    numpolytopes = len(sat_polytopes)
     joint_sat_matrix = [
-        [False for _ in range(numcubes)] for _ in range(numcubes)]
+        [False for _ in range(numpolytopes)] for _ in range(numpolytopes)]
 
     for i, polytope in enumerate(sat_polytopes):
-      for j in range(i + 1, numcubes):  # Only check upper triangle
+      for j in range(i + 1, numpolytopes):  # Only check upper triangle
         if joint_sat_matrix[i][j]:
           joint_sat = sat
         else:
@@ -48,7 +49,7 @@ def process_cubes_componentcount(cubes, mapping):
         if joint_sat == sat:
           joint_sat_matrix[i][j] = True
           joint_sat_matrix[j][i] = True  # Symmetry
-          for k in range(numcubes):
+          for k in range(numpolytopes):
             if joint_sat_matrix[i][k] or joint_sat_matrix[j][k]:
               joint_sat_matrix[i][k] = True
               joint_sat_matrix[k][i] = True
@@ -56,8 +57,8 @@ def process_cubes_componentcount(cubes, mapping):
               joint_sat_matrix[k][j] = True
         joint_sat_matrix[i][i] = True
 
-      for i in range(numcubes):
-        for j in range(numcubes):
+      for i in range(numpolytopes):
+        for j in range(numpolytopes):
           if joint_sat_matrix[i][j]:
             graph[i].append(j)
     log(f"{gbl.time()} Done running joint satisfiability. Running Prim's", 2)
