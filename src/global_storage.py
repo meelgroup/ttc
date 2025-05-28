@@ -32,7 +32,8 @@ class GlobalStorage:
     volesti_algo = "coolingball"
     disjoint = False
     # volesti_algo = "--seqball"
-    volesti_walk_length = 5
+    volesti_walk_length = 2147483647
+    volesti_guaranteed = False
     starttime = 0
     tempfiles = ["tri.ead", "tri.iad", "tri.ecd",
                  "tri.icd", "tri.ine", "tri.ext",
@@ -79,6 +80,7 @@ class GlobalStorage:
         self.usepact = _arg.pact
         self.useoptcnt = _arg.optcnt
         self.volepsfrac = _arg.volepsfrac
+        self.volesti_guaranteed = _arg.volguarantee
 
         if self.logic == "lra":
             self.disjoint = _arg.disjoint

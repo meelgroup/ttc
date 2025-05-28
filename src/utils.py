@@ -45,6 +45,8 @@ def get_arg_parser():
                         help='Epsilon value multiplier for the volume approximation algorithm.')
     parser.add_argument("-c", "--countdisjoint", action="store_true",
                         help='Count disjoint components in the solution space.')
+    parser.add_argument("-g", "--volguarantee", action="store_true",
+                        help='Use guaranteed algorithm for the approximation algorithm.')
 
     return parser
 
