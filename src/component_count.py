@@ -19,7 +19,9 @@ def process_cubes_componentcount(cubes, mapping):
     sat_polytopes = []
     if gbl.logic != "lra":
         raise ValueError("Component counting only makes sense for LRA logic.")
+    log(f"{gbl.time()} Checking whether {numcubes} cubes are polytopes by z3 calls", 3)
     for i in range(numcubes):
+        log(f"{gbl.time()} Checking whether polytope {i+1} is sat", 3)
         polytope = Polytope.create_polytope_from_cube(cubes[i], mapping)
         polytope_smt = polytope.to_smt_lra(solve  = True)
         if polytope_smt == sat:
@@ -39,6 +41,11 @@ def process_cubes_componentcount(cubes, mapping):
         if joint_sat == sat:
           joint_sat_matrix[i][j] = True
           joint_sat_matrix[j][i] = True  # Symmetry
+        joint_sat_matrix[i][i] = True
+
+      if all(joint_sat_matrix[i]):
+        log(f"{gbl.time()} Polytope {i+1} is connected to all others, early result!", 2)
+        return 1
 
       for i in range(numcubes):
         for j in range(numcubes):

@@ -218,7 +218,7 @@ class LiteralMapping:
         log(
             f"created constraint matrix of size {self.constraint_matrix.shape}", 3)
         gbl.dimension = len(self.variables) - 1
-        log(f"variables: {self.variables}", 3)
+        log(f"variables: {self.variables}", 4)
         one_constraint = pd.DataFrame(
             columns=self.variables, index=range(1))
 

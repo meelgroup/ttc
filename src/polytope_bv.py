@@ -59,7 +59,7 @@ class Polytope:
             write_matrix_to_file(dfd, filename)
         new_b = dfd.iloc[:, 0].to_numpy()
         new_A = dfd.iloc[:, 1:].to_numpy()
-        log(f"Created polytope from cube: \n {new_A} \n {new_b}", 3)
+        log(f"Created polytope from cube: \n {new_A} \n {new_b}", 4)
         return Polytope(new_A, new_b)
 
 
