@@ -1,7 +1,7 @@
 import os
 import subprocess
 from .literal_mapping import LiteralMapping
-from .utils import log
+from .utils import log, print_final_result
 from .global_storage import gbl
 
 
@@ -24,6 +24,10 @@ class CVC5Runner:
         if gbl.verbosity >= 4:
             print(result.stdout)
         if result.returncode != 0:
+            if "unsat" in result.stdout:
+                log("c cvc5 output indicates UNSAT", 0)
+                print_final_result(0)
+                exit(0)
             raise RuntimeError(f"cvc5 error: {result.stderr}")
         log(f"cvc5 output: {result.stdout}", 4)
         self.cvcoutput = result.stdout
