@@ -19,7 +19,7 @@ def process_cubes_componentcount(cubes, mapping):
     sat_polytopes = []
     if gbl.logic != "lra":
         raise ValueError("Component counting only makes sense for LRA logic.")
-    log(f"{gbl.time()} Checking whether {numcubes} cubes are polytopes by z3 calls", 3)
+    log(f"{gbl.time()} Checking whether {numcubes} cubes are polytopes by z3 calls", 2)
     for i in range(numcubes):
         log(f"{gbl.time()} Checking whether polytope {i+1} is sat", 3)
         polytope = Polytope.create_polytope_from_cube(cubes[i], mapping)
@@ -32,20 +32,27 @@ def process_cubes_componentcount(cubes, mapping):
 
     # Create a graph where nodes are polytopes and edges represent joint satisfiability
     graph = defaultdict(list)
+    joint_sat_matrix = [
+        [False for _ in range(numcubes)] for _ in range(numcubes)]
+
     for i, polytope in enumerate(sat_polytopes):
-      joint_sat_matrix = [[False] * numcubes for _ in range(numcubes)]
       for j in range(i + 1, numcubes):  # Only check upper triangle
-        joint_sat = sat_polytopes[i].check_joint_satisfiability(
+        if joint_sat_matrix[i][j]:
+          joint_sat = sat
+        else:
+          joint_sat = sat_polytopes[i].check_joint_satisfiability(
             sat_polytopes[j])
         log(f"{gbl.time()} Polytopes {i+1} and {j+1} are connected? {joint_sat}", 3)
         if joint_sat == sat:
           joint_sat_matrix[i][j] = True
           joint_sat_matrix[j][i] = True  # Symmetry
+          for k in range(numcubes):
+            if joint_sat_matrix[i][k] or joint_sat_matrix[j][k]:
+              joint_sat_matrix[i][k] = True
+              joint_sat_matrix[k][i] = True
+              joint_sat_matrix[j][k] = True
+              joint_sat_matrix[k][j] = True
         joint_sat_matrix[i][i] = True
-
-      if all(joint_sat_matrix[i]):
-        log(f"{gbl.time()} Polytope {i+1} is connected to all others, early result!", 2)
-        return 1
 
       for i in range(numcubes):
         for j in range(numcubes):

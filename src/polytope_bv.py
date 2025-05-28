@@ -133,6 +133,7 @@ class Polytope:
         This is done by combining their constraints and checking satisfiability.
         """
         n = other_polytope.A.shape[1]
+        log(f"c [ttc->tobv] Running joint satisfiability with another polytope", 4)
         log(f"other polytope \n {other_polytope.A} \n {other_polytope.b}", 5)
         x = [Real(f'x{i}') for i in range(n)]
 
