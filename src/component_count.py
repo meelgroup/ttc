@@ -25,15 +25,25 @@ def process_cubes_componentcount(cubes, mapping):
         if polytope_smt == sat:
             sat_polytopes.append(polytope)
     assert len(sat_polytopes) > 0, "No satisfiable polytopes found."
-    log(f"{gbl.time()} Found {len(sat_polytopes)} satisfiable polytopes, now running joint satisfiablility", 2)
+    unsat_cubes = numcubes - len(sat_polytopes)
+    log(f"{gbl.time()} Found {len(sat_polytopes)} satisfiable polytopes (+ {unsat_cubes} unsat), now running joint satisfiablility", 2)
 
     # Create a graph where nodes are polytopes and edges represent joint satisfiability
     graph = defaultdict(list)
     for i, polytope in enumerate(sat_polytopes):
-      for j, other_polytope in enumerate(sat_polytopes):
-        if i != j and polytope.check_joint_satisfiability(other_polytope):
-          graph[i].append(j)
-          graph[j].append(i)
+      joint_sat_matrix = [[False] * numcubes for _ in range(numcubes)]
+      for j in range(i + 1, numcubes):  # Only check upper triangle
+        joint_sat = sat_polytopes[i].check_joint_satisfiability(
+            sat_polytopes[j])
+        log(f"{gbl.time()} Polytopes {i+1} and {j+1} are connected? {joint_sat}", 3)
+        if joint_sat == sat:
+          joint_sat_matrix[i][j] = True
+          joint_sat_matrix[j][i] = True  # Symmetry
+
+      for i in range(numcubes):
+        for j in range(numcubes):
+          if joint_sat_matrix[i][j]:
+            graph[i].append(j)
     log(f"{gbl.time()} Done running joint satisfiability. Running Prim's", 2)
 
     # Function to find connected components using Prim's algorithm

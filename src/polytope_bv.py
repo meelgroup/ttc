@@ -23,6 +23,7 @@ class Polytope:
         self.count = None
         self.max_coords = []
         self.equality_constraints = []
+        self.solver = Solver()
 
     @staticmethod
     def from_file(filepath, optbw=True, shift=True):
@@ -92,7 +93,6 @@ class Polytope:
         return solver
 
     def to_smt_lia(self):
-        solver = Solver()
         n = self.A.shape[1]
         x = [Int(f'x{i}') for i in range(n)]
         for i in range(len(self.b)):
@@ -102,13 +102,12 @@ class Polytope:
             else:
                 constraint = sum(self.A[i][j] * x[j]
                                   for j in range(n)) <= self.b[i]
-            solver.add(constraint)
+            self.solver.add(constraint)
             # log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)
 
-        return solver
+        return self.solver
 
     def to_smt_lra(self, solve=False):
-        solver = Solver()
         n = self.A.shape[1]
         x = [Real(f'x{i}') for i in range(n)]
         for i in range(len(self.b)):
@@ -118,45 +117,45 @@ class Polytope:
             else:
                 constraint = sum(self.A[i][j] * x[j]
                                  for j in range(n)) <= self.b[i]
-            solver.add(constraint)
+            self.solver.add(constraint)
             # log(f"c [ttc->tobv] Adding constraint: {constraint} \n for {self.A[i]} and {self.b[i]}",3)\
         if solve:
-            result = solver.check()
+            if gbl.verbosity >= 5:
+                tosmt = self.solver.to_smt2()
+                log(f"c [ttc->tobv] Combined SMT2 constraints:\n{tosmt}", 5)
+            result = self.solver.check()
             return result
-        return solver
+        return self.solver
 
     def check_joint_satisfiability(self, other_polytope):
         """
         Check if the current polytope and another polytope are jointly satisfiable.
         This is done by combining their constraints and checking satisfiability.
         """
-        solver = Solver()
-        n1 = self.A.shape[1]
-        n2 = other_polytope.A.shape[1]
-        x1 = [Real(f'x1_{i}') for i in range(n1)]
-        x2 = [Real(f'x2_{i}') for i in range(n2)]
+        n = other_polytope.A.shape[1]
+        log(f"other polytope \n {other_polytope.A} \n {other_polytope.b}", 5)
+        x = [Real(f'x{i}') for i in range(n)]
 
-        # Add constraints from the first polytope
-        for i in range(len(self.b)):
-            if i in self.equality_constraints:
-                constraint = sum(self.A[i][j] * x1[j]
-                                 for j in range(n1)) == self.b[i]
-            else:
-                constraint = sum(self.A[i][j] * x1[j]
-                                 for j in range(n1)) <= self.b[i]
-            solver.add(constraint)
+        self.solver.push()  # Save the current state of the solver
+
+
 
         # Add constraints from the second polytope
         for i in range(len(other_polytope.b)):
             if i in other_polytope.equality_constraints:
-                constraint = sum(other_polytope.A[i][j] * x2[j]
-                                 for j in range(n2)) == other_polytope.b[i]
+                constraint = sum(other_polytope.A[i][j] * x[j]
+                                 for j in range(n)) == other_polytope.b[i]
             else:
-                constraint = sum(other_polytope.A[i][j] * x2[j]
-                                 for j in range(n2)) <= other_polytope.b[i]
-            solver.add(constraint)
+                constraint = sum(other_polytope.A[i][j] * x[j]
+                                 for j in range(n)) <= other_polytope.b[i]
+            self.solver.add(constraint)
 
-        result = solver.check()
+        if gbl.verbosity >= 5:
+            tosmt = self.solver.to_smt2()
+            log(f"c [ttc->tobv] Combined SMT2 constraints:\n{tosmt}", 5)
+
+        result = self.solver.check()
+        self.solver.pop()  # Restore the previous state
         return result
 
     def to_smt2_file(self, filepath, encoding = "bv"):
