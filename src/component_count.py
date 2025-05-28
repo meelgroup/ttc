@@ -26,7 +26,9 @@ def process_cubes_componentcount(cubes, mapping):
         polytope_smt = polytope.to_smt_lra(solve  = True)
         if polytope_smt == sat:
             sat_polytopes.append(polytope)
-    assert len(sat_polytopes) > 0, "No satisfiable polytopes found."
+    if len(sat_polytopes) == 0:
+      log("No satisfiable polytopes found.", 1)
+      return 0
     unsat_cubes = numcubes - len(sat_polytopes)
     log(f"{gbl.time()} Found {len(sat_polytopes)} satisfiable polytopes (+ {unsat_cubes} unsat), now running joint satisfiablility", 2)
 
