@@ -1,0 +1,1 @@
+rm -f *.tmp *.smt2 *.ine *.ext *.aag *.cnf *.dnf Check_* tri* numOf* totalTime vertices.txt latte_stats
