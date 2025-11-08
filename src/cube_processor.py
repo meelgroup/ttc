@@ -67,7 +67,8 @@ def process_cubes(cubes, mapping):
         return process_cubes_componentcount(cubes, mapping)
     if not gbl.disjoint:
         if gbl.bringmann_friedrich or gbl.abboud:
-            log(f"{gbl.time()} Processing cubes using Bringmann-Friedrich algorithm", 1)
+            algo_name = "Abboud et al." if gbl.abboud else "Bringmann-Friedrich"
+            log(f"{gbl.time()} Processing cubes using {algo_name} algorithm", 1)
             return process_cubes_bringmann_friedrich(cubes, mapping, use_abboud=gbl.abboud)
         else:
             return process_cubes_nondisjoint(cubes, mapping)

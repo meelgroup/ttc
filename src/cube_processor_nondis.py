@@ -149,16 +149,27 @@ def process_cubes_nondisjoint(cubes, mapping):
 def process_cubes_bringmann_friedrich(cubes, mapping, use_abboud=False):
   np.random.seed(gbl.seed)
   random.seed(gbl.seed)
-  volume_eps = gbl.epsilon  / 1000
-  log(f"Using volume epsilon: {volume_eps}",2)
+  algo_name = "Abboud et al." if use_abboud else "Bringmann-Friedrich"
   numcubes = len(cubes)
-  bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
-  log(f"Using Bringmann-Friedrich algorithm with eps_tilde = {bf_eps}",2)
+  if use_abboud:
+    volume_eps = gbl.epsilon * gbl.epsilon  / (numcubes * 47)
+  else:
+    volume_eps = gbl.epsilon  / 100
+  log(f"Using volume epsilon: {volume_eps}",2)
+  if use_abboud:
+    bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
+  else:
+    bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
+  log(f"Using {algo_name} algorithm with eps_tilde = {bf_eps}",2)
+
   c_tilde = (1 + volume_eps)**2  / (1 - volume_eps)
   log(f"Using c_tilde = {c_tilde}",2)
-  thresh = 24 * math.log(2) * (1 + bf_eps) * numcubes / ((bf_eps**2) - 8 * (c_tilde -1)*numcubes)
-  assert thresh > 0, "Threshold for Bringmann-Friedrich algorithm is non-positive, increase epsilon or decrease number of cubes"
-  log(f"Threshold for Bringmann-Friedrich algorithm: {thresh}",2)
+  if use_abboud:
+    thresh = 8 * math.log(8/gbl.delta) * (1 + bf_eps) * numcubes / ((bf_eps**2) - 8 * (c_tilde -1)*numcubes)
+  else:
+    thresh = 24 * math.log(2) * (1 + bf_eps) * numcubes / ((bf_eps**2) - 8 * (c_tilde -1)*numcubes)
+  assert thresh > 0, f"Threshold for {algo_name} algorithm is non-positive, increase epsilon or decrease number of cubes"
+  log(f"Threshold for {algo_name} algorithm: {thresh}",2)
   delta = gbl.delta
   filenames = create_all_polytope_filenames(numcubes)
   dimensions = len(mapping.constraint_matrix.columns)
