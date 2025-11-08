@@ -47,6 +47,13 @@ def get_arg_parser():
                         help='Count disjoint components in the solution space.')
     parser.add_argument("-g", "--volguarantee", action="store_true",
                         help='Use guaranteed algorithm for the approximation algorithm.')
+    parser.add_argument("--wmidnf", action="store_true",
+                        help='Create a Python file with polytopes for the WMI-DNF tool.')
+    parser.add_argument("-bf", "--bringmannfriedrich", action="store_true",
+                        help='Use Bringmann-Friedrich algorithm for union of polytopes in LRA.')
+    parser.add_argument("--abboud", action="store_true",
+                        help='Use Abboud et al. algorithm for union of polytopes in LRA.')
+
 
     return parser
 

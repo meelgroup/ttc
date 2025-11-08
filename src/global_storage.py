@@ -31,6 +31,8 @@ class GlobalStorage:
     volesti_algo = "coolinggauss"
     volesti_algo = "coolingball"
     disjoint = False
+    bringmann_friedrich = False
+    abboud = False
     # volesti_algo = "--seqball"
     volesti_walk_length = 2147483647
     volesti_guaranteed = False
@@ -48,6 +50,7 @@ class GlobalStorage:
     seed = 123
     dontdelete = False
     voleps = 0.2
+    wmidnf = False
 
     def set_logic(self):
         with open(self.filename, 'r') as file:
@@ -81,11 +84,12 @@ class GlobalStorage:
         self.useoptcnt = _arg.optcnt
         self.volepsfrac = _arg.volepsfrac
         self.volesti_guaranteed = _arg.volguarantee
-
+        self.bringmann_friedrich = _arg.bringmannfriedrich
+        self.abboud = _arg.abboud
         if self.logic == "lra":
             self.disjoint = _arg.disjoint
         else:
-            self.disjoint = True
+            self.disjoint = False
         self.starttime = time.time()
         self.seed = _arg.seed
         self.dontdelete = _arg.dontdelete
@@ -93,6 +97,7 @@ class GlobalStorage:
         self.epsilon = _arg.eps
         self.delta = _arg.delta
         self.count_disjoint_components = _arg.countdisjoint
+        self.wmidnf = _arg.wmidnf
 
     def time(self):
         return f"[{(time.time() - self.starttime):.3f} s]"

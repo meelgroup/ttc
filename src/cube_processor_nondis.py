@@ -31,7 +31,8 @@ def create_all_polytope_filenames(num):
     return filenames
 
 def generate_samples(polytopefile, n, precision):
-    log(f"Generating samples for polytope {polytopefile}", 3)
+    if n > 2:
+      log(f"Generating samples for polytope {polytopefile}", 3)
     result = run_volesti_sampling_on_matrix(polytopefile, n)
     return result
 
@@ -143,3 +144,81 @@ def process_cubes_nondisjoint(cubes, mapping):
     log(f"Number of point in X: {len(X)} samples added: {N}", 2)
 
   return len(X)/(p)
+
+
+def process_cubes_bringmann_friedrich(cubes, mapping, use_abboud=False):
+  np.random.seed(gbl.seed)
+  random.seed(gbl.seed)
+  volume_eps = gbl.epsilon  / 1000
+  log(f"Using volume epsilon: {volume_eps}",2)
+  numcubes = len(cubes)
+  bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
+  log(f"Using Bringmann-Friedrich algorithm with eps_tilde = {bf_eps}",2)
+  c_tilde = (1 + volume_eps)**2  / (1 - volume_eps)
+  log(f"Using c_tilde = {c_tilde}",2)
+  thresh = 24 * math.log(2) * (1 + bf_eps) * numcubes / ((bf_eps**2) - 8 * (c_tilde -1)*numcubes)
+  assert thresh > 0, "Threshold for Bringmann-Friedrich algorithm is non-positive, increase epsilon or decrease number of cubes"
+  log(f"Threshold for Bringmann-Friedrich algorithm: {thresh}",2)
+  delta = gbl.delta
+  filenames = create_all_polytope_filenames(numcubes)
+  dimensions = len(mapping.constraint_matrix.columns)
+  if gbl.exactvolume:
+    bf_eps = gbl.epsilon
+  log(f"{gbl.time()} Starting Union Algorithm, Threshold: {thresh}", 2)
+  p = 1
+  # X = [[float(format(0, ".3f")) for _ in range(dimensions)] for _ in range(int(thresh))]
+  X = []
+  polytopes = []
+  volumes = []
+  S = []
+  max_volume = 0
+  num_zero_volume = 0
+  dimensions = 2
+  precision = get_precision_from_cubes(dimensions, cubes)
+
+  log(f"{gbl.time()} Getting volumes for {numcubes} cubes", 1)
+  sum_volume = 0
+  for i in range(numcubes):
+    polytope = Polytope.create_polytope_from_cube(
+        cubes[i], mapping, filenames[i])
+    volume = volume_of_polytope(filenames[i], volume_eps, delta)
+    if volume <= 0:
+      log(f"Volume of polytope is zero, skipping", 2)
+      num_zero_volume += 1
+      continue
+    polytopes.append(polytope)
+    volumes.append(volume)
+    sum_volume += volume
+    if volume > max_volume:
+      max_volume = volume
+
+  cube_probabilities = [vol/sum_volume for vol in volumes]
+
+  log(f"{gbl.time()} Got volumes for {numcubes} cubes", 1)
+
+  if num_zero_volume > 0:
+    log(f"Skipping {num_zero_volume} polytopes out of {numcubes} where volume is zero", 2)
+  tries = 0
+  M = 0
+  repeats_done = False
+  while not repeats_done:
+    i = random.choices(range(len(cube_probabilities)), weights=cube_probabilities, k=1)[0]
+    S = generate_samples(filenames[i], 1, precision)
+    assert S is not None
+    M += 1
+    S_inj = False
+    while S_inj is False:
+      if tries > thresh:
+        repeats_done = True
+        break
+      j = random.choices(range(len(cube_probabilities)), k=1)[0]
+      polytope = polytopes[j]
+      assert polytope is not None
+      tries += 1
+      if tries % 50 == 0:
+        log(f"Tries: {tries}, M: {M}",2)
+      if polytope.is_in_polytope(S[0]):
+        S_inj = True
+  res = thresh * sum_volume / (numcubes * M)
+  log(f"Total Tries {tries} for M {M}",2)
+  return res

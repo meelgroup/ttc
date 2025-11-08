@@ -107,6 +107,8 @@ def convert_aig_to_dnf(aig_file):
     return dnf_file
 
 
+
+
 def parse_dnf_file(dnf_file):
     log("Parsing DNF content", 3)
     cubes = []
@@ -117,4 +119,5 @@ def parse_dnf_file(dnf_file):
             cubes.append([int(lit)
                          for lit in line.strip().split() if lit != '0'])
     log(f"Parsed DNF content: {cubes}", 4)
+    log(f"Number of cubes parsed: {len(cubes)}", 1)
     return cubes

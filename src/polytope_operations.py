@@ -79,6 +79,7 @@ def canonicalize(input_file, ignore_lin_set=False):
         str: The name of the output file containing the canonicalized H-representation in ine format.
     """
     array = read_h_representation(input_file)
+
     mat = cdd.matrix_from_array(array, rep_type=cdd.RepType.INEQUALITY)
     # mat.rep_type = cdd.RepType.INEQUALITY
 

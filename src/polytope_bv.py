@@ -248,6 +248,7 @@ class Polytope:
     def canonicalize(self):
         polytope_array = np.hstack((self.b[:, np.newaxis], - self.A))
         mat = cdd.matrix_from_array(polytope_array, rep_type=cdd.RepType.INEQUALITY)
+
         # mat.rep_type = cdd.RepType.INEQUALITY
         cdd.matrix_canonicalize(mat)
         poly = np.array(mat.array)

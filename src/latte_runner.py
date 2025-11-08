@@ -96,8 +96,6 @@ def get_count_command(toolname):
         if not os.path.isfile(volesti_path):
             raise FileNotFoundError(
                 f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
-        volesti_command = [volesti_path, gbl.volesti_algo,
-                           str(gbl.volesti_walk_length)]
         volesti_command = [volesti_path, "--seed",
                            str(gbl.seed), "--epsilon", str(gbl.voleps)]
         if gbl.volesti_guaranteed:
@@ -333,7 +331,7 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
         log(f"c [ttc->sampling] asked to sample no points", 2)
         df = pd.DataFrame()
         return df
-    else:
+    elif n > 1:
         log(f"{gbl.time()} Generating {n} points", 2)
     canonicalized_ine = canonicalize(matrix_file)
     script_dir = os.path.dirname(os.path.abspath(__file__))
