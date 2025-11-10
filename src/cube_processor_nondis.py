@@ -151,15 +151,12 @@ def process_cubes_bringmann_friedrich(cubes, mapping, use_abboud=False):
   random.seed(gbl.seed)
   algo_name = "Abboud et al." if use_abboud else "Bringmann-Friedrich"
   numcubes = len(cubes)
-  if use_abboud:
-    volume_eps = gbl.epsilon * gbl.epsilon  / (numcubes * 47)
-  else:
-    volume_eps = gbl.epsilon  / 100
+  # if use_abboud:
+  volume_eps = gbl.epsilon * gbl.epsilon  / (numcubes * 47)
+  # else:
+    # volume_eps = gbl.epsilon  / 100
   log(f"Using volume epsilon: {volume_eps}",2)
-  if use_abboud:
-    bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
-  else:
-    bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
+  bf_eps = (gbl.epsilon - volume_eps) / (1+ volume_eps)
   log(f"Using {algo_name} algorithm with eps_tilde = {bf_eps}",2)
 
   c_tilde = (1 + volume_eps)**2  / (1 - volume_eps)
