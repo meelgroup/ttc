@@ -40,6 +40,11 @@ else
   echo "  -> cddlib already built, skipping"
 fi
 
+# Ensure all lib-src headers are present (macOS autoreconf can miss some)
+mkdir -p "$CDDLIB_PREFIX/include/cddlib"
+find "$CDDLIB_SRC/lib-src" -maxdepth 1 -name "*.h" \
+  -exec install -m 644 {} "$CDDLIB_PREFIX/include/cddlib/" \;
+
 # VolEsti includes "cdd/setoper.h"; cddlib installs under cddlib/ — add alias
 ln -sf "$CDDLIB_PREFIX/include/cddlib" "$CDDLIB_PREFIX/include/cdd"
 
@@ -68,11 +73,17 @@ if need_build volume || need_build sample; then
     rm -rf "$VOLESTI_BUILD"
   fi
 
+  # lp_solve 5.5.2.14 bundles setoper symbols that also appear in libcdd.a;
+  # allow-multiple-definition picks the first (lp_solve's compatible copy)
+  ALLOW_MULTI=""
+  [[ "$(uname)" == "Linux" ]] && ALLOW_MULTI="-Wl,--allow-multiple-definition"
+
   mkdir -p "$VOLESTI_BUILD"
   cmake -S "$VOLESTI_SRC" -B "$VOLESTI_BUILD" -DCMAKE_BUILD_TYPE=Release -Wno-dev \
     -DCDDLIB="$CDDLIB_LIB" \
     -DCMAKE_CXX_FLAGS="-I$CDDLIB_PREFIX/include" \
-    -DCMAKE_C_FLAGS="-I$CDDLIB_PREFIX/include"
+    -DCMAKE_C_FLAGS="-I$CDDLIB_PREFIX/include" \
+    -DCMAKE_EXE_LINKER_FLAGS="$ALLOW_MULTI"
   cmake --build "$VOLESTI_BUILD" -j"$NPROC"
   install -m 755 "$VOLESTI_BUILD/volume" "$BIN_DIR/volume"
   install -m 755 "$VOLESTI_BUILD/sample" "$BIN_DIR/sample"
