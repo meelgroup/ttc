@@ -18,6 +18,10 @@ need_build() {
   return 0
 }
 
+echo "=== Initializing submodules ==="
+git -C "$SCRIPT_DIR" submodule update --init --recursive
+
+echo ""
 echo "=== Building dependencies ==="
 
 # --- cddlib (GMP version) ---
@@ -27,10 +31,9 @@ CDDLIB_LIB="$CDDLIB_PREFIX/lib/libcddgmp.a"
 if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
   echo ""
   echo "--- Building cddlib (GMP version) ---"
-  # The pre-shipped configure has an unexpanded AX_CHECK_COMPILE_FLAG macro
-  # (MSVC-only, irrelevant on Linux/macOS) — strip it before running configure
-  sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' "$CDDLIB_SRC/configure"
-  (cd "$CDDLIB_SRC" && ./configure --prefix="$CDDLIB_PREFIX" && make -j"$NPROC" install)
+  # Remove MSVC-only AX_CHECK_COMPILE_FLAG block (not in system m4 macros)
+  sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' "$CDDLIB_SRC/configure.ac"
+  (cd "$CDDLIB_SRC" && autoreconf -i && ./configure --prefix="$CDDLIB_PREFIX" && make -j"$NPROC" install)
   echo "  -> cddlib installed to $CDDLIB_PREFIX"
 else
   echo "  -> cddlib already built, skipping"
