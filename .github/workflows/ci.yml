@@ -27,8 +27,8 @@ jobs:
             libeigen3-dev libboost-dev libboost-program-options-dev \
             libgmp-dev libmpfr-dev \
             autoconf automake libtool \
-            lp-solve liblpsolve55-dev \
             texlive-latex-base texlive-latex-recommended \
+            lp-solve liblpsolve55-dev \
             pkg-config
 
       - name: Install system dependencies (macOS)
@@ -39,7 +39,7 @@ jobs:
             eigen boost \
             gmp mpfr \
             autoconf automake libtool \
-            mactex-no-gui \
+            basictex \
             pkg-config
 
       - name: Set up Python
@@ -56,8 +56,8 @@ jobs:
           sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' configure.ac
           autoreconf -i
           ./configure --prefix="$CDDLIB_PREFIX"
-          make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu)
-          make install
+          make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu) SUBDIRS="lib-src src"
+          make install SUBDIRS="lib-src src"
           echo "CFLAGS=-I$CDDLIB_PREFIX/include" >> $GITHUB_ENV
           echo "LDFLAGS=-L$CDDLIB_PREFIX/lib" >> $GITHUB_ENV
 

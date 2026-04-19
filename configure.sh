@@ -48,14 +48,14 @@ if need_build volume || need_build sample; then
   VOLESTI_BUILD="$VOLESTI_SRC/build"
   LPSOLVE_DEPS="$DEPS_DIR/VolEsti/external/_deps"
 
-  # Reuse lp_solve source from a previous build to avoid re-downloading
-  if [[ ! -f "$LPSOLVE_DEPS/lpsolve-src/lpsolve.h" ]]; then
-    cached="$DEPS_DIR/VolEsti/external/_deps/lpsolve-src"
-    if [[ -f "$cached/lpsolve.h" ]]; then
-      echo "  -> Seeding lp_solve source from $cached"
-      mkdir -p "$LPSOLVE_DEPS/lpsolve-src"
-      cp -a "$cached/." "$LPSOLVE_DEPS/lpsolve-src/"
-    fi
+  # Pre-download lp_solve so cmake FetchContent finds it locally (SourceForge hangs in cmake)
+  LPSOLVE_SRC="$LPSOLVE_DEPS/lpsolve-src"
+  if [[ ! -f "$LPSOLVE_SRC/lpsolve.h" ]]; then
+    echo "  -> Downloading lp_solve 5.5.2.11..."
+    mkdir -p "$LPSOLVE_SRC"
+    curl -fsSL --max-time 120 \
+      "https://webwerks.dl.sourceforge.net/project/lpsolve/lpsolve/5.5.2.11/lp_solve_5.5.2.11_source.tar.gz" \
+      | tar xz --strip-components=1 -C "$LPSOLVE_SRC"
   fi
 
   # Clean stale build dir if lp_solve wasn't seeded in the previous run
