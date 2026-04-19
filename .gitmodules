@@ -10,3 +10,6 @@
 [submodule "bin/deps/upstream-lrslib"]
 	path = bin/deps/upstream-lrslib
 	url = https://github.com/passagemath/upstream-lrslib.git
+[submodule "bin/deps/cddlib"]
+	path = bin/deps/cddlib
+	url = https://github.com/cddlib/cddlib.git

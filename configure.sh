@@ -20,6 +20,19 @@ need_build() {
 
 echo "=== Building dependencies ==="
 
+# --- cddlib (GMP version) ---
+CDDLIB_SRC="$DEPS_DIR/cddlib"
+CDDLIB_PREFIX="$CDDLIB_SRC/install"
+CDDLIB_LIB="$CDDLIB_PREFIX/lib/libcddgmp.a"
+if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
+  echo ""
+  echo "--- Building cddlib (GMP version) ---"
+  (cd "$CDDLIB_SRC" && autoreconf -i && ./configure --prefix="$CDDLIB_PREFIX" && make -j"$NPROC" install)
+  echo "  -> cddlib installed to $CDDLIB_PREFIX"
+else
+  echo "  -> cddlib already built, skipping"
+fi
+
 # --- VolEsti (examples/volume) ---
 if need_build volume || need_build sample; then
   echo ""
@@ -46,7 +59,10 @@ if need_build volume || need_build sample; then
   fi
 
   mkdir -p "$VOLESTI_BUILD"
-  cmake -S "$VOLESTI_SRC" -B "$VOLESTI_BUILD" -DCMAKE_BUILD_TYPE=Release -Wno-dev
+  cmake -S "$VOLESTI_SRC" -B "$VOLESTI_BUILD" -DCMAKE_BUILD_TYPE=Release -Wno-dev \
+    -DCDDLIB="$CDDLIB_LIB" \
+    -DCMAKE_CXX_FLAGS="-I$CDDLIB_PREFIX/include" \
+    -DCMAKE_C_FLAGS="-I$CDDLIB_PREFIX/include"
   cmake --build "$VOLESTI_BUILD" -j"$NPROC"
   install -m 755 "$VOLESTI_BUILD/volume" "$BIN_DIR/volume"
   install -m 755 "$VOLESTI_BUILD/sample" "$BIN_DIR/sample"
