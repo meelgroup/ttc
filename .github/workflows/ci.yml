@@ -28,6 +28,7 @@ jobs:
             libgmp-dev libmpfr-dev \
             autoconf automake libtool \
             lp-solve liblpsolve55-dev \
+            texlive-latex-base texlive-latex-recommended \
             pkg-config
 
       - name: Install system dependencies (macOS)
@@ -38,6 +39,7 @@ jobs:
             eigen boost \
             gmp mpfr \
             autoconf automake libtool \
+            mactex-no-gui \
             pkg-config
 
       - name: Set up Python
@@ -55,7 +57,7 @@ jobs:
           autoreconf -i
           ./configure --prefix="$CDDLIB_PREFIX"
           make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu)
-          make install SUBDIRS="lib-src src"
+          make install
           echo "CFLAGS=-I$CDDLIB_PREFIX/include" >> $GITHUB_ENV
           echo "LDFLAGS=-L$CDDLIB_PREFIX/lib" >> $GITHUB_ENV
 

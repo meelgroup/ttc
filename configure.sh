@@ -34,7 +34,7 @@ if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
   # Remove MSVC-only AX_CHECK_COMPILE_FLAG block (not in system m4 macros)
   sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' "$CDDLIB_SRC/configure.ac"
   (cd "$CDDLIB_SRC" && autoreconf -i && ./configure --prefix="$CDDLIB_PREFIX" && \
-    make -j"$NPROC" && make install SUBDIRS="lib-src src")
+    make -j"$NPROC" && make install)
   echo "  -> cddlib installed to $CDDLIB_PREFIX"
 else
   echo "  -> cddlib already built, skipping"
