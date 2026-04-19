@@ -51,10 +51,10 @@ if need_build volume || need_build sample; then
   # Pre-download lp_solve so cmake FetchContent finds it locally (SourceForge hangs in cmake)
   LPSOLVE_SRC="$LPSOLVE_DEPS/lpsolve-src"
   if [[ ! -f "$LPSOLVE_SRC/lpsolve.h" ]]; then
-    echo "  -> Downloading lp_solve 5.5.2.11..."
+    echo "  -> Downloading lp_solve 5.5.2.14..."
     mkdir -p "$LPSOLVE_SRC"
     curl -fsSL --max-time 120 \
-      "https://webwerks.dl.sourceforge.net/project/lpsolve/lpsolve/5.5.2.11/lp_solve_5.5.2.11_source.tar.gz" \
+      "https://github.com/lp-solve/lp_solve/releases/download/5.5.2.14/lp_solve_5.5.2.14_source.tar.gz" \
       | tar xz --strip-components=1 -C "$LPSOLVE_SRC"
   fi
 
