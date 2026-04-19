@@ -1,20 +1,37 @@
 # TTC: Toolbox for Theory Counting
 
-Count the number of models of a given SMT LIA formula.
+Volume computation for SMT LRA formulas. Corresponding paper from [KR 2025](https://arxiv.org/abs/2508.09934).
 
 ## Requirements
 
-- Python
-- `lark-parser` library: `pip install lark-parser`
-- `cvc5`: Install from [cvc5 internal GitHub](https://github.com/meelgroup/pact) branch `ttc`
-- `hall`: Install from [hall GitHub](https://github.com/hall-solver/hall)
-- `latte`: Install from [latte GitHub](https://github.com/latte-central/latte)
+**System** (Linux/macOS):
+
+- Linux: `cmake build-essential libeigen3-dev libboost-dev libboost-program-options-dev libgmp-dev libmpfr-dev autoconf automake libtool pkg-config`
+- macOS: `brew install cmake eigen boost gmp mpfr autoconf automake libtool pkg-config`
+
+**Python 3.11+**
+
+## Install
+
+```sh
+git clone --recurse-submodules <repo-url>
+cd ttc
+pip install -r requirements.txt
+bash configure.sh
+```
+
+`configure.sh` builds all C++ dependencies (cvc5, VolEsti, allsat-circuits, lrslib) into `bin/`. Skips any binary already present; use `--force` to rebuild.
 
 ## Usage
 
-1. Save your SMT-LIB 2 constraints to a file (e.g., `input.smt`).
-2. Run TTC:
-   ```sh
-   ./ttc input.smt2
-   ```
-3. To see various options, run `./ttc --help`.
+```sh
+./ttc example/box_or_lra.smt2
+```
+
+Output includes a line of the form:
+
+```
+s vol <float>
+```
+
+For all options: `./ttc --help`
