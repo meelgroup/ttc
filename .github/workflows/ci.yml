@@ -63,6 +63,7 @@ jobs:
           GMP_LDFLAGS=${GMP_PREFIX:+-L$GMP_PREFIX/lib}
           echo "CFLAGS=-I$CDDLIB_PREFIX/include $GMP_CFLAGS" >> $GITHUB_ENV
           echo "LDFLAGS=-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS" >> $GITHUB_ENV
+          echo "ARCHFLAGS=-arch $(uname -m)" >> $GITHUB_ENV
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
