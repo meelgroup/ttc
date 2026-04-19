@@ -1,6 +1,8 @@
 # TTC: Toolbox for Theory Counting
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/meelgroup/ttc/actions/workflows/ci.yml/badge.svg?branch=devel)](https://github.com/meelgroup/ttc/actions/workflows/ci.yml)
+
 
 Volume computation for SMT LRA formulas. Corresponding paper from [KR 2025](https://arxiv.org/abs/2508.09934).
 

@@ -55,7 +55,10 @@ jobs:
           cd "$CDDLIB_SRC"
           sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' configure.ac
           autoreconf -i
-          ./configure --prefix="$CDDLIB_PREFIX"
+          GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
+          ./configure --prefix="$CDDLIB_PREFIX" \
+            ${GMP_PREFIX:+CPPFLAGS="-I$GMP_PREFIX/include"} \
+            ${GMP_PREFIX:+LDFLAGS="-L$GMP_PREFIX/lib"}
           make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu) SUBDIRS="lib-src src"
           make install SUBDIRS="lib-src src"
           # Ensure all lib-src headers are present (macOS autoreconf can miss some)

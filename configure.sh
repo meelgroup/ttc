@@ -33,7 +33,11 @@ if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
   echo "--- Building cddlib (GMP version) ---"
   # Remove MSVC-only AX_CHECK_COMPILE_FLAG block (not in system m4 macros)
   sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' "$CDDLIB_SRC/configure.ac"
-  (cd "$CDDLIB_SRC" && autoreconf -i && ./configure --prefix="$CDDLIB_PREFIX" && \
+  GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
+  (cd "$CDDLIB_SRC" && autoreconf -i && \
+    ./configure --prefix="$CDDLIB_PREFIX" \
+      ${GMP_PREFIX:+CPPFLAGS="-I$GMP_PREFIX/include"} \
+      ${GMP_PREFIX:+LDFLAGS="-L$GMP_PREFIX/lib"} && \
     make -j"$NPROC" && make install)
   echo "  -> cddlib installed to $CDDLIB_PREFIX"
 else
