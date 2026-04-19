@@ -58,8 +58,11 @@ jobs:
           ./configure --prefix="$CDDLIB_PREFIX"
           make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu) SUBDIRS="lib-src src"
           make install SUBDIRS="lib-src src"
-          echo "CFLAGS=-I$CDDLIB_PREFIX/include" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$CDDLIB_PREFIX/lib" >> $GITHUB_ENV
+          GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
+          GMP_CFLAGS=${GMP_PREFIX:+-I$GMP_PREFIX/include}
+          GMP_LDFLAGS=${GMP_PREFIX:+-L$GMP_PREFIX/lib}
+          echo "CFLAGS=-I$CDDLIB_PREFIX/include $GMP_CFLAGS" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS" >> $GITHUB_ENV
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
