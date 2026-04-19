@@ -35,12 +35,13 @@ if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
   sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' "$CDDLIB_SRC/configure.ac"
   (cd "$CDDLIB_SRC" && autoreconf -i && ./configure --prefix="$CDDLIB_PREFIX" && \
     make -j"$NPROC" && make install)
-  # VolEsti includes "cdd/setoper.h"; cddlib installs under cddlib/ — add alias
-  ln -sf "$CDDLIB_PREFIX/include/cddlib" "$CDDLIB_PREFIX/include/cdd"
   echo "  -> cddlib installed to $CDDLIB_PREFIX"
 else
   echo "  -> cddlib already built, skipping"
 fi
+
+# VolEsti includes "cdd/setoper.h"; cddlib installs under cddlib/ — add alias
+ln -sf "$CDDLIB_PREFIX/include/cddlib" "$CDDLIB_PREFIX/include/cdd"
 
 # --- VolEsti (examples/volume) ---
 if need_build volume || need_build sample; then

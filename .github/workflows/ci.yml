@@ -61,7 +61,7 @@ jobs:
           GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
           GMP_CFLAGS=${GMP_PREFIX:+-I$GMP_PREFIX/include}
           GMP_LDFLAGS=${GMP_PREFIX:+-L$GMP_PREFIX/lib}
-          echo "CFLAGS=-I$CDDLIB_PREFIX/include $GMP_CFLAGS" >> $GITHUB_ENV
+          echo "CFLAGS=-I$CDDLIB_PREFIX/include -I$CDDLIB_PREFIX/include/cddlib $GMP_CFLAGS" >> $GITHUB_ENV
           echo "LDFLAGS=-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS" >> $GITHUB_ENV
           echo "ARCHFLAGS=-arch $(uname -m)" >> $GITHUB_ENV
 
