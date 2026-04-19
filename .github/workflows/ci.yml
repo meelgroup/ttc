@@ -51,7 +51,7 @@ jobs:
           CDDLIB_SRC="$PWD/bin/deps/cddlib"
           CDDLIB_PREFIX="$CDDLIB_SRC/install"
           cd "$CDDLIB_SRC"
-          autoreconf -i
+          sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' configure
           ./configure --prefix="$CDDLIB_PREFIX"
           make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu) install
           echo "CFLAGS=-I$CDDLIB_PREFIX/include" >> $GITHUB_ENV

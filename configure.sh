@@ -27,7 +27,10 @@ CDDLIB_LIB="$CDDLIB_PREFIX/lib/libcddgmp.a"
 if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
   echo ""
   echo "--- Building cddlib (GMP version) ---"
-  (cd "$CDDLIB_SRC" && autoreconf -i && ./configure --prefix="$CDDLIB_PREFIX" && make -j"$NPROC" install)
+  # The pre-shipped configure has an unexpanded AX_CHECK_COMPILE_FLAG macro
+  # (MSVC-only, irrelevant on Linux/macOS) — strip it before running configure
+  sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' "$CDDLIB_SRC/configure"
+  (cd "$CDDLIB_SRC" && ./configure --prefix="$CDDLIB_PREFIX" && make -j"$NPROC" install)
   echo "  -> cddlib installed to $CDDLIB_PREFIX"
 else
   echo "  -> cddlib already built, skipping"
