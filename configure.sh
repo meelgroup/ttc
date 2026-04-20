@@ -109,9 +109,17 @@ if need_build hall_tool; then
   echo "--- Building allsat-circuits (hall_tool) ---"
   ALLSAT_SRC="$DEPS_DIR/allsat-circuits"
   ALLSAT_BUILD="$ALLSAT_SRC/build"
+  ALLSAT_CMAKE_ARGS=(-DCMAKE_BUILD_TYPE=Release)
   git -C "$ALLSAT_SRC" submodule update --init --recursive
   mkdir -p "$ALLSAT_BUILD"
-  cmake -S "$ALLSAT_SRC" -B "$ALLSAT_BUILD" -DCMAKE_BUILD_TYPE=Release
+
+  # CMake 4 drops compatibility with projects that still declare
+  # cmake_minimum_required(VERSION < 3.5) in nested subdirectories like lorina.
+  if cmake --version | head -n1 | grep -Eq 'version (4|[5-9])\.'; then
+    ALLSAT_CMAKE_ARGS+=(-DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+  fi
+
+  cmake -S "$ALLSAT_SRC" -B "$ALLSAT_BUILD" "${ALLSAT_CMAKE_ARGS[@]}"
   cmake --build "$ALLSAT_BUILD" -j"$NPROC"
   install -m 755 "$ALLSAT_BUILD/hall_tool" "$BIN_DIR/hall_tool"
   echo "  -> hall_tool copied to bin/"
