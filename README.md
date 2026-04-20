@@ -1,10 +1,10 @@
 # TTC: Toolbox for Theory Counting
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/meelgroup/ttc/actions/workflows/ci.yml/badge.svg?branch=devel)](https://github.com/meelgroup/ttc/actions/workflows/ci.yml)
+[![CI](https://github.com/meelgroup/ttc/actions/workflows/ci.yml/badge.svg)](https://github.com/meelgroup/ttc/actions/workflows/ci.yml)
 
 
-Volume computation for SMT LRA formulas. Corresponding paper from [KR 2025](https://arxiv.org/abs/2508.09934).
+`ttc` is a volume computation for SMT (LRA) formulas. Given an LRA formula, `ttc` returns the volume of the solution space with $(\varepsilon,\delta)$-guarantees. Find more details in our [KR 2025 paper](https://arxiv.org/abs/2508.09934).
 
 ## Building
 
@@ -12,7 +12,7 @@ Volume computation for SMT LRA formulas. Corresponding paper from [KR 2025](http
 
 Linux:
 ```
-cmake build-essential curl libeigen3-dev libboost-dev libboost-program-options-dev libgmp-dev libmpfr-dev autoconf automake libtool pkg-config
+sudo apt install cmake build-essential curl libeigen3-dev libboost-dev libboost-program-options-dev libgmp-dev libmpfr-dev autoconf automake libtool pkg-config
 ```
 macOS:
 ```
