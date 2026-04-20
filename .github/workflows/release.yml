@@ -314,10 +314,12 @@ jobs:
       - name: Stage release payload
         shell: bash
         run: |
-          STAGE="ttc-${{ steps.version.outputs.tag }}-${{ matrix.artifact }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          STAGE="ttc-${TAG#v}-${{ matrix.artifact }}"
           mkdir -p "$STAGE/bin" "$STAGE/wheels"
 
-          cp ttc README.md LICENSE "$STAGE/"
+          install -m 755 ttc.py "$STAGE/ttc"
+          cp ttc.py _bootstrap.py README.md LICENSE "$STAGE/"
           cp requirements-release.txt "$STAGE/requirements.txt"
           cp -R src example "$STAGE/"
 

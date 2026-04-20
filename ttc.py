@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-from src import *
+import os
 import sys
+
+from _bootstrap import ensure_ready
+
+_bin_dir = ensure_ready()
+os.environ["TTC_BIN_DIR"] = str(_bin_dir)
+os.environ["PATH"] = str(_bin_dir) + os.pathsep + os.environ.get("PATH", "")
+
+from src import *
 
 
 def ttc():

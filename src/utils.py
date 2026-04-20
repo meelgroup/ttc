@@ -62,11 +62,11 @@ def get_arg_parser():
 
 
 def check_existence_of_tools(tools):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Move one level up
-    parent_dir = os.path.dirname(script_dir)
-    # Replace cwd to the parent directory
-    bin_dir = os.path.join(parent_dir, 'bin')
+    bin_dir = os.environ.get("TTC_BIN_DIR")
+    if not bin_dir:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        bin_dir = os.path.join(parent_dir, 'bin')
     log(f"bin_dir: {bin_dir}", 4)
     # bin_dir = os.path.join(os.getcwd(), 'bin')
     for tool in tools:
