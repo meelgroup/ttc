@@ -11,8 +11,8 @@
 Download the archive for your platform from the [Releases page](https://github.com/meelgroup/ttc/releases) according to your OS. Now, extract and install (change file name based on OS):
 
 ```sh
-tar xzf ttc-*.tar.gz
-cd ttc-<version>-<platform>
+tar xzf ttc-v1.0.001-linux-x86_64.tar.gz
+cd ttc-v1.0.001-linux-x86_64
 ./install.sh
 ```
 

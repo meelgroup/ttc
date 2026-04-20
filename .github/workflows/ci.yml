@@ -90,6 +90,72 @@ jobs:
       - name: Build dependencies
         run: bash configure.sh
 
+      - name: Report native binary linkage
+        shell: bash
+        run: |
+          binaries=(
+            bin/cvc5
+            bin/hall_tool
+            bin/lrs
+            bin/sample
+            bin/volume
+          )
+
+          report_linux_linkage() {
+            local bin="$1"
+            local output
+            output=$(ldd "$bin" 2>&1 || true)
+            printf '%s\n' "$output"
+            case "$output" in
+              *"not a dynamic executable"*|*"statically linked"*)
+                echo "Summary: statically linked"
+                ;;
+              *)
+                echo "Summary: dynamically linked or mixed"
+                ;;
+            esac
+          }
+
+          report_macos_linkage() {
+            local bin="$1"
+            local output
+            output=$(otool -L "$bin" 2>&1 || true)
+            printf '%s\n' "$output"
+            if printf '%s\n' "$output" | tail -n +2 | grep -Eq '^[[:space:]]+(/|@)'; then
+              echo "Summary: dynamically linked"
+            else
+              echo "Summary: unable to confirm dynamic linkage"
+            fi
+          }
+
+          for bin in "${binaries[@]}"; do
+            echo "::group::${bin}"
+            if [ ! -e "$bin" ]; then
+              echo "Summary: binary not present"
+              echo "::endgroup::"
+              continue
+            fi
+
+            file_output=$(file "$bin" 2>&1 || true)
+            printf '%s\n' "$file_output"
+            case "$file_output" in
+              *"script"*|*"text executable"*)
+                echo "Summary: not a native binary (script)"
+                echo "::endgroup::"
+                continue
+                ;;
+            esac
+
+            if command -v ldd >/dev/null 2>&1; then
+              report_linux_linkage "$bin"
+            elif command -v otool >/dev/null 2>&1; then
+              report_macos_linkage "$bin"
+            else
+              echo "Summary: no supported linkage inspection tool available"
+            fi
+            echo "::endgroup::"
+          done
+
       - name: Install Python dependencies
         run: |
           CDDLIB_PREFIX="$PWD/bin/deps/cddlib/install"

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Version label for the archive name (e.g. v0.1.0). Defaults to the current ref name.'
+        description: ''
         required: false
 
 jobs:
@@ -69,8 +69,113 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Compute dependency cache key
+        id: deps-cache-key
+        shell: bash
+        run: |
+          hash256() {
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$@"
+            else
+              shasum -a 256 "$@"
+            fi
+          }
+
+          submodule_hash=$(git submodule status --cached --recursive | hash256 | awk '{print $1}')
+          recipe_hash=$(hash256 configure.sh .gitmodules | hash256 | awk '{print $1}')
+          toolchain_hash=$(printf '%s\n%s\n%s\n' \
+            "$(uname -m)" \
+            "$(cmake --version | head -n1)" \
+            "$(${CC:-cc} --version | head -n1 2>/dev/null || true)" \
+            | hash256 | awk '{print $1}')
+          echo "key=${RUNNER_OS}-deps-v1-${submodule_hash}-${recipe_hash}-${toolchain_hash}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependency cache
+        id: deps-cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ steps.deps-cache-key.outputs.key }}
+          path: |
+            bin/deps/cddlib/install
+            bin/deps/VolEsti/external/_deps
+            bin/deps/VolEsti/examples/volume/build
+            bin/deps/allsat-circuits/build
+            bin/deps/pact/build
+            bin/deps/upstream-lrslib
+            bin/cvc5
+            bin/hall_tool
+            bin/lrs
+            bin/sample
+            bin/volume
+
       - name: Build native dependencies
         run: bash configure.sh
+
+      - name: Report native binary linkage
+        shell: bash
+        run: |
+          binaries=(
+            bin/cvc5
+            bin/hall_tool
+            bin/lrs
+            bin/sample
+            bin/volume
+          )
+
+          report_linux_linkage() {
+            local bin="$1"
+            local output
+            output=$(ldd "$bin" 2>&1 || true)
+            printf '%s\n' "$output"
+            case "$output" in
+              *"not a dynamic executable"*|*"statically linked"*)
+                echo "Summary: statically linked"
+                ;;
+              *)
+                echo "Summary: dynamically linked or mixed"
+                ;;
+            esac
+          }
+
+          report_macos_linkage() {
+            local bin="$1"
+            local output
+            output=$(otool -L "$bin" 2>&1 || true)
+            printf '%s\n' "$output"
+            if printf '%s\n' "$output" | tail -n +2 | grep -Eq '^[[:space:]]+(/|@)'; then
+              echo "Summary: dynamically linked"
+            else
+              echo "Summary: unable to confirm dynamic linkage"
+            fi
+          }
+
+          for bin in "${binaries[@]}"; do
+            echo "::group::${bin}"
+            if [ ! -e "$bin" ]; then
+              echo "Summary: binary not present"
+              echo "::endgroup::"
+              continue
+            fi
+
+            file_output=$(file "$bin" 2>&1 || true)
+            printf '%s\n' "$file_output"
+            case "$file_output" in
+              *"script"*|*"text executable"*)
+                echo "Summary: not a native binary (script)"
+                echo "::endgroup::"
+                continue
+                ;;
+            esac
+
+            if command -v ldd >/dev/null 2>&1; then
+              report_linux_linkage "$bin"
+            elif command -v otool >/dev/null 2>&1; then
+              report_macos_linkage "$bin"
+            else
+              echo "Summary: no supported linkage inspection tool available"
+            fi
+            echo "::endgroup::"
+          done
 
       - name: Install wheel build/repair tooling
         shell: bash
@@ -90,15 +195,41 @@ jobs:
           GMP_CFLAGS=${GMP_PREFIX:+-I$GMP_PREFIX/include}
           GMP_LDFLAGS=${GMP_PREFIX:+-L$GMP_PREFIX/lib}
           ARCHFLAGS=""
+          WHEEL_ENV=(
+            "CFLAGS=-I$CDDLIB_PREFIX/include -I$CDDLIB_PREFIX/include/cddlib $GMP_CFLAGS"
+            "LDFLAGS=-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS"
+            "ARCHFLAGS=$ARCHFLAGS"
+          )
+          PYTHON_HOST_PLATFORM=""
+          MACOSX_DEPLOYMENT_TARGET=""
           if [ "$(uname)" = "Darwin" ]; then
             ARCHFLAGS="-arch $(uname -m)"
+            # GitHub's macOS Python 3.11 can default wheel tags to universal2
+            # even when we only build arm64 binaries. Force an arm64 platform
+            # tag so delocate does not require a missing x86_64 slice.
+            MACOSX_DEPLOYMENT_TARGET="11.0"
+            PYTHON_HOST_PLATFORM="macosx-${MACOSX_DEPLOYMENT_TARGET}-$(uname -m)"
+            WHEEL_ENV[2]="ARCHFLAGS=$ARCHFLAGS"
+            WHEEL_ENV+=(
+              "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
+              "_PYTHON_HOST_PLATFORM=$PYTHON_HOST_PLATFORM"
+            )
           fi
 
           mkdir -p dist-raw
-          CFLAGS="-I$CDDLIB_PREFIX/include -I$CDDLIB_PREFIX/include/cddlib $GMP_CFLAGS" \
-          LDFLAGS="-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS" \
-          ARCHFLAGS="$ARCHFLAGS" \
+          env "${WHEEL_ENV[@]}" \
             pip wheel --no-binary pycddlib --no-deps -w dist-raw pycddlib
+
+          if [ "$(uname)" = "Darwin" ]; then
+            raw_wheel=$(echo dist-raw/pycddlib-*.whl)
+            case "$raw_wheel" in
+              *arm64.whl) ;;
+              *)
+                echo "ERROR: expected an arm64 pycddlib wheel, got: $raw_wheel"
+                exit 1
+                ;;
+            esac
+          fi
 
       - name: Repair pycddlib wheel (vendor libcddgmp + libgmp)
         shell: bash
