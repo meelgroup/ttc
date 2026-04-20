@@ -198,7 +198,7 @@ jobs:
           export LD_LIBRARY_PATH="$PWD/bin/deps/cddlib/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           export DYLD_LIBRARY_PATH="$PWD/bin/deps/cddlib/install/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
           set +e
-          output=$(./ttc example/box_or_lra.smt2 2>&1)
+          output=$(python ttc.py example/box_or_lra.smt2 2>&1)
           status=$?
           set -e
 

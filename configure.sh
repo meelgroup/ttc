@@ -171,6 +171,22 @@ if need_build lrs; then
     fi
   fi
 
+  # Upstream builds lrs against liblrs.la, which yields a libtool wrapper
+  # script at the top level and a dynamically linked binary in .libs/.
+  # Link lrs against the static archives directly so bin/lrs is a real
+  # executable; on Linux also request a fully static link.
+  if grep -q '^lrs_LDADD = liblrs\.la ' "$LRS_DIR/Makefile.am"; then
+    echo "  -> Patching lrslib lrs target to build a direct executable"
+    perl -0pi -e 's@lrs_SOURCES = lrs\.c\nlrs_CPPFLAGS = -DMA \$\(GMP_CFLAGS\)\nlrs_LDADD = liblrs\.la \$\(GMP_LDFLAGS\) -lgmp@lrs_SOURCES = lrs.c lrsdriver.c\nlrs_CPPFLAGS = -DMA \$\(GMP_CFLAGS\)\nlrs_DEPENDENCIES = liblrs1.la liblrsgmp.la\nlrs_LDADD = ./.libs/liblrs1.a ./.libs/liblrsgmp.a \$\(GMP_LDFLAGS\) -lgmp@' \
+      "$LRS_DIR/Makefile.am"
+  fi
+
+  if [[ "$(uname)" != "Darwin" ]] && ! grep -q '^lrs_LDFLAGS = -all-static$' "$LRS_DIR/Makefile.am"; then
+    echo "  -> Enabling static link for lrslib lrs on Linux"
+    perl -0pi -e 's@lrs_LDADD = \$\(GMP_LDFLAGS\) -lgmp@lrs_LDFLAGS = -all-static\nlrs_LDADD = \$\(GMP_LDFLAGS\) -lgmp@' \
+      "$LRS_DIR/Makefile.am"
+  fi
+
   (cd "$LRS_DIR" && autoreconf -i && env "${LRS_CONFIGURE_ENV[@]}" ./configure && env "${LRS_CONFIGURE_ENV[@]}" make -j"$NPROC" lrs)
   install -m 755 "$LRS_DIR/lrs" "$BIN_DIR/lrs"
   echo "  -> lrs copied to bin/"

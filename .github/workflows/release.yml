@@ -92,7 +92,7 @@ jobs:
 
       - name: Restore dependency cache
         id: deps-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           key: ${{ steps.deps-cache-key.outputs.key }}
           path: |
@@ -110,6 +110,24 @@ jobs:
 
       - name: Build native dependencies
         run: bash configure.sh
+
+      - name: Save dependency cache
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.deps-cache-key.outputs.key }}
+          path: |
+            bin/deps/cddlib/install
+            bin/deps/VolEsti/external/_deps
+            bin/deps/VolEsti/examples/volume/build
+            bin/deps/allsat-circuits/build
+            bin/deps/pact/build
+            bin/deps/upstream-lrslib
+            bin/cvc5
+            bin/hall_tool
+            bin/lrs
+            bin/sample
+            bin/volume
 
       - name: Report native binary linkage
         shell: bash
@@ -260,9 +278,11 @@ jobs:
       - name: Collect other dependency wheels
         shell: bash
         run: |
-          # pycddlib and polytope are provided by the locally built wheels above.
-          grep -Ev '^(pycddlib|polytope)$' requirements.txt > requirements-runtime.txt
-          cp requirements-runtime.txt requirements-release.txt
+          # The archive requirements should still list every runtime package,
+          # including pycddlib and polytope, because those wheels are bundled
+          # locally and installed offline by install.sh.
+          cp requirements.txt requirements-release.txt
+          grep -Ev '^(pycddlib|polytope)$' requirements-release.txt > requirements-download.txt
 
           if [ "$(uname)" = "Darwin" ]; then
             # z3-solver 4.16.0.0 only publishes macOS ARM64 wheels tagged for
@@ -276,13 +296,20 @@ jobs:
             mv requirements-release.tmp requirements-release.txt
           fi
 
-          pip download --only-binary=:all: -d wheels -r requirements-release.txt
+          pip download --only-binary=:all: -d wheels -r requirements-download.txt
           pip download --only-binary=:all: -d wheels scipy networkx
 
           if [ "$(uname)" = "Darwin" ] && ! compgen -G 'wheels/z3_solver-*.whl' > /dev/null; then
             echo "ERROR: expected a bundled z3-solver wheel for the macOS archive"
             exit 1
           fi
+
+          for pkg in pycddlib polytope; do
+            if ! grep -Fxq "$pkg" requirements-release.txt; then
+              echo "ERROR: release requirements are missing $pkg"
+              exit 1
+            fi
+          done
 
       - name: Stage release payload
         shell: bash
@@ -314,7 +341,7 @@ jobs:
           cd "$WORK/$STAGE"
           ./install.sh
           set +e
-          output=$(./ttc example/box_or_lra.smt2 2>&1)
+          output=$(python ttc.py example/box_or_lra.smt2 2>&1)
           status=$?
           set -e
           printf '%s\n' "$output"
