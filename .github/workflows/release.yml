@@ -347,7 +347,10 @@ jobs:
           cd "$WORK/$STAGE"
           ./install.sh
           set +e
-          output=$(python ttc.py example/box_or_lra.smt2 2>&1)
+          # Use ./ttc (shebang rewritten to the .venv python by install.sh),
+          # not `python ttc.py` — plain `python` here is the workflow's
+          # setup-python, which has no pycddlib/polytope installed.
+          output=$(./ttc example/box_or_lra.smt2 2>&1)
           status=$?
           set -e
           printf '%s\n' "$output"
