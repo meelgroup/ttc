@@ -61,14 +61,23 @@ def get_arg_parser():
 
 
 
-def check_existence_of_tools(tools):
+def get_bin_dir():
+    """Resolve the directory holding native helper binaries (cvc5, lrs, ...).
+
+    Prefers TTC_BIN_DIR (set by the pipx bootstrap to its state dir). Falls
+    back to <repo>/bin for dev checkouts and the install.sh tarball layout.
+    """
     bin_dir = os.environ.get("TTC_BIN_DIR")
-    if not bin_dir:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
-        bin_dir = os.path.join(parent_dir, 'bin')
+    if bin_dir:
+        return bin_dir
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(script_dir)
+    return os.path.join(parent_dir, 'bin')
+
+
+def check_existence_of_tools(tools):
+    bin_dir = get_bin_dir()
     log(f"bin_dir: {bin_dir}", 4)
-    # bin_dir = os.path.join(os.getcwd(), 'bin')
     for tool in tools:
         tool_path = os.path.join(bin_dir, tool)
         if not os.path.isfile(tool_path):

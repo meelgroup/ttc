@@ -260,10 +260,7 @@ class Polytope:
 
     def run_csb_and_get_count(self):
         filename = self.smtfilename
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
-        bin_dir = os.path.join(parent_dir, 'bin')
-        csb_path = os.path.join(bin_dir, 'csb')
+        csb_path = os.path.join(get_bin_dir(), 'csb')
 
         result = subprocess.run(
             [csb_path, '-c', filename], capture_output=True, text=True)
@@ -275,10 +272,7 @@ class Polytope:
 
     def run_pact_and_get_count(self):
         filename = self.smtfilename
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
-        bin_dir = os.path.join(parent_dir, 'bin')
-        csb_path = os.path.join(bin_dir, 'cvc5')
+        csb_path = os.path.join(get_bin_dir(), 'cvc5')
         # TODO get exact command
         if self.max_coords is None:
             raise ValueError("max_coords is None, cannot determine maxint")

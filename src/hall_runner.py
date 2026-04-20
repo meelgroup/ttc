@@ -1,7 +1,7 @@
 import subprocess
 import os
 import pty
-from .utils import log
+from .utils import get_bin_dir, log
 from .global_storage import gbl
 
 
@@ -9,11 +9,7 @@ def convert_cnf_to_dnf(cnf_file):
     log("Running CNF to DNF converter...", 2)
 
     cubes_size = 0
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    bin_dir = os.path.join(parent_dir, 'bin')
-
-    cnftranslate_path = os.path.join(bin_dir, 'cnftranslate')
+    cnftranslate_path = os.path.join(get_bin_dir(), 'cnftranslate')
 
     dnf_file = cnf_file[:-4] + ".dnf"
     gbl.tempfiles.append(dnf_file)
@@ -59,10 +55,7 @@ def convert_to_dnf(cnf_file):
 def convert_aig_to_dnf(aig_file):
     log(f"{gbl.time()} Running AIG to DNF converter...", 1)
     cubes_size = 0
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    bin_dir = os.path.join(parent_dir, 'bin')
-    cnftranslate_path = os.path.join(bin_dir, 'hall_tool')
+    cnftranslate_path = os.path.join(get_bin_dir(), 'hall_tool')
 
     dnf_file = aig_file[:-4] + ".dnf"
     gbl.tempfiles.append(dnf_file)

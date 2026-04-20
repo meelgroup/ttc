@@ -4,7 +4,7 @@ import subprocess
 import os
 import re
 import sys
-from .utils import log
+from .utils import get_bin_dir, log
 import threading
 from .global_storage import gbl
 from .polytope_bv import Polytope
@@ -96,10 +96,7 @@ def get_count_command(toolname):
                 f"{latte_path} does not exist. Please ensure that the tool is installed correctly.")
         return latte_path
     elif toolname.startswith("volesti"):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
-        bin_dir = os.path.join(parent_dir, 'bin')
-        volesti_path = os.path.join(bin_dir, 'volume')
+        volesti_path = os.path.join(get_bin_dir(), 'volume')
         if not os.path.isfile(volesti_path):
             raise FileNotFoundError(
                 f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")
@@ -273,9 +270,7 @@ def latte_to_ine(input_file_path, output_file_path):
 def convert_latte_to_polytope(matrix_file, type="vpolytope"):
     use_latte2ine_bin = False
     log(f"Converting latte to vpolytope...", 1)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    bin_dir = os.path.join(parent_dir, 'bin')
+    bin_dir = get_bin_dir()
     latte2ine_path = os.path.join(bin_dir, 'latte2ine')
     lrs_path = os.path.join(bin_dir, 'lrs')
 
@@ -347,10 +342,7 @@ def run_volesti_sampling_on_matrix(matrix_file, n, timeout=3600):
     elif n > 1:
         log(f"{gbl.time()} Generating {n} points", 2)
     canonicalized_ine = canonicalize(matrix_file)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    bin_dir = os.path.join(parent_dir, 'bin')
-    volesti_path = os.path.join(bin_dir, 'sample')
+    volesti_path = os.path.join(get_bin_dir(), 'sample')
     if not os.path.isfile(volesti_path):
         raise FileNotFoundError(
             f"{volesti_path} does not exist. Please ensure that the tool is installed correctly.")

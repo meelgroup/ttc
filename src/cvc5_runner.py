@@ -1,7 +1,7 @@
 import os
 import subprocess
 from .literal_mapping import LiteralMapping
-from .utils import log, print_final_result
+from .utils import get_bin_dir, log, print_final_result
 from .global_storage import gbl
 
 
@@ -13,11 +13,7 @@ class CVC5Runner:
 
     def run_cvc5_on_smt_file(self):
         log(f"{gbl.time()} Running cvc5 on {self.smt_file}", 1)
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
-        bin_dir = os.path.join(parent_dir, 'bin')
-        # bin_dir = os.path.join(os.getcwd(), 'bin')
-        cvc_path = os.path.join(bin_dir, 'cvc5')
+        cvc_path = os.path.join(get_bin_dir(), 'cvc5')
 
         result = subprocess.run([cvc_path, '--boolabs', '-t', 'aiginfo', self.smt_file],
                                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
