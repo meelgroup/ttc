@@ -65,7 +65,9 @@ def ensure_ready() -> Path:
 
     artifact = _platform_artifact()
     archive_name = f"ttc-{VERSION}-{artifact}.tar.gz"
-    url = f"https://github.com/{GITHUB_REPO}/releases/download/v{VERSION}/{archive_name}"
+    url = os.environ.get("TTC_ARCHIVE_URL") or (
+        f"https://github.com/{GITHUB_REPO}/releases/download/v{VERSION}/{archive_name}"
+    )
 
     print(f"[ttc] First-run setup: downloading {archive_name} ...", file=sys.stderr)
 
