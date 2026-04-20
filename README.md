@@ -12,11 +12,11 @@ Volume computation for SMT LRA formulas. Corresponding paper from [KR 2025](http
 
 Linux:
 ```
-cmake build-essential libeigen3-dev libboost-dev libboost-program-options-dev libgmp-dev libmpfr-dev autoconf automake libtool pkg-config
+cmake build-essential curl libeigen3-dev libboost-dev libboost-program-options-dev libgmp-dev libmpfr-dev autoconf automake libtool pkg-config
 ```
 macOS:
 ```
-brew install cmake eigen boost gmp mpfr autoconf automake libtool pkg-config
+brew install cmake curl eigen boost gmp mpfr autoconf automake libtool pkg-config
 ```
 Make sure you have Python 3.11+.
 
