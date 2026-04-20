@@ -9,7 +9,15 @@ from pathlib import Path
 from typing import Optional
 
 GITHUB_REPO = "meelgroup/ttc"
-VERSION = "0.1.0"
+
+try:
+    from importlib.metadata import version as _pkg_version
+    VERSION = _pkg_version("ttc")
+except Exception:
+    # Running from a source checkout with no installed metadata (e.g. dev mode
+    # or a bare tarball). The sibling-bin fast path handles these cases, so
+    # VERSION only matters on the download branch — which such users won't hit.
+    VERSION = "0.0.0"
 
 CUSTOM_WHEEL_PACKAGES = ["pycddlib", "polytope"]
 # pip-install name → import name (pycddlib installs as `cdd`).
@@ -89,7 +97,15 @@ def ensure_ready() -> Path:
         tar.extractall(extract_dir)
     archive_path.unlink()
 
-    stage = extract_dir / f"ttc-{VERSION}-{artifact}"
+    # Glob rather than reconstructing from VERSION — decouples extraction from
+    # whatever the archive was named, so a version mismatch between the
+    # installed package and the downloaded archive doesn't wedge us.
+    stage_candidates = list(extract_dir.glob(f"ttc-*-{artifact}"))
+    if len(stage_candidates) != 1:
+        raise RuntimeError(
+            f"expected exactly one stage dir in {extract_dir}, got {stage_candidates}"
+        )
+    stage = stage_candidates[0]
 
     bin_dir.mkdir(exist_ok=True)
     for b in NATIVE_BINARIES:
