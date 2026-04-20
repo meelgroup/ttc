@@ -33,6 +33,8 @@ bash configure.sh
 
 ## Usage
 
+The expected input format is the [SMT-LIB2](https://smtlib.cs.uiowa.edu/language.shtml) format. The tool supports the theory of linear real arithmetic (QF_LRA). See `example` directory for some examples.
+
 ```sh
 ./ttc example/box_or_lra.smt2
 ```
@@ -44,3 +46,16 @@ s vol <float>
 ```
 
 For all options: `./ttc --help`
+
+
+### Guarantees
+SkolemFC provides so-called "PAC", or Probably Approximately Correct, guarantees. In less fancy words, the system guarantees that the solution found is within a certain tolerance (called "epsilon") with a certain probability (called "delta"). The default tolerance and probability, i.e. epsilon and delta values, are set to 0.8 and 0.2, respectively. Both values are configurable.
+
+### Issues, questions, bugs, etc.
+Please click on "issues" at the top and [create a new issue](https://github.com/meelgroup/ttc/issues/new).
+
+## How to Cite
+
+This work is by Arijit Shaw, Uddalok Sarkar, and Kuldeep S. Meel, as [published in KR-25](https://arxiv.org/abs/2508.09934).
+
+The benchmarks used in our evaluation can be found [here](https://zenodo.org/records/16782811).

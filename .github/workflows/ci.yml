@@ -48,10 +48,55 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: Compute dependency cache key
+        id: deps-cache-key
+        shell: bash
+        run: |
+          hash256() {
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$@"
+            else
+              shasum -a 256 "$@"
+            fi
+          }
+
+          submodule_hash=$(git submodule status --cached --recursive | hash256 | awk '{print $1}')
+          recipe_hash=$(hash256 configure.sh .gitmodules | hash256 | awk '{print $1}')
+          toolchain_hash=$(printf '%s\n%s\n%s\n' \
+            "$(uname -m)" \
+            "$(cmake --version | head -n1)" \
+            "$(${CC:-cc} --version | head -n1 2>/dev/null || true)" \
+            | hash256 | awk '{print $1}')
+          echo "key=${RUNNER_OS}-deps-v1-${submodule_hash}-${recipe_hash}-${toolchain_hash}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependency cache
+        id: deps-cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ steps.deps-cache-key.outputs.key }}
+          path: |
+            bin/deps/cddlib/install
+            bin/deps/VolEsti/external/_deps
+            bin/deps/VolEsti/examples/volume/build
+            bin/deps/allsat-circuits/build
+            bin/deps/pact/build
+            bin/deps/upstream-lrslib
+            bin/cvc5
+            bin/hall_tool
+            bin/lrs
+            bin/sample
+            bin/volume
+
       - name: Build cddlib
         run: |
           CDDLIB_SRC="$PWD/bin/deps/cddlib"
           CDDLIB_PREFIX="$CDDLIB_SRC/install"
+          CDDLIB_LIB="$CDDLIB_PREFIX/lib/libcddgmp.a"
+          echo "CDDLIB_PREFIX=$CDDLIB_PREFIX" >> $GITHUB_ENV
+          if [ -f "$CDDLIB_LIB" ]; then
+            echo "Using cached cddlib from $CDDLIB_PREFIX"
+            exit 0
+          fi
           cd "$CDDLIB_SRC"
           sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' configure.ac
           autoreconf -i
@@ -64,7 +109,6 @@ jobs:
           # Ensure all lib-src headers are present (macOS autoreconf can miss some)
           find "$CDDLIB_SRC/lib-src" -maxdepth 1 -name "*.h" \
             -exec install -m 644 {} "$CDDLIB_PREFIX/include/cddlib/" \;
-          echo "CDDLIB_PREFIX=$CDDLIB_PREFIX" >> $GITHUB_ENV
 
       - name: Install Python dependencies
         run: |
@@ -79,9 +123,40 @@ jobs:
       - name: Build dependencies
         run: bash configure.sh
 
+      - name: Verify required binaries
+        run: |
+          required_binaries=(
+            cvc5
+            hall_tool
+            volume
+            sample
+            lrs
+          )
+
+          for bin_name in "${required_binaries[@]}"; do
+            bin_path="bin/$bin_name"
+            if [ ! -f "$bin_path" ]; then
+              echo "ERROR: required binary not found: $bin_path"
+              exit 1
+            fi
+            if [ ! -x "$bin_path" ]; then
+              echo "ERROR: required binary is not executable: $bin_path"
+              exit 1
+            fi
+          done
+
       - name: Run test
         run: |
+          set +e
           output=$(./ttc example/box_or_lra.smt2 2>&1)
-          echo "$output"
+          status=$?
+          set -e
+
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            echo "ERROR: ./ttc exited with status $status"
+            exit "$status"
+          fi
+
           echo "$output" | grep -E '^s vol [0-9]+(\.[0-9]+)?' \
             || { echo "ERROR: expected 's vol <float>' line not found in output"; exit 1; }

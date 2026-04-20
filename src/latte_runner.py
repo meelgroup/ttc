@@ -66,6 +66,13 @@ def run_tool_on_matrix(matrix_file, toolname, timeout=3600):
             stdout = ''.join(stdout_lines)
             stderr = ''.join(stderr_lines)
 
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"{toolname} exited with return code {proc.returncode}\n"
+                    f"stdout:\n{stdout.strip() or '<empty>'}\n"
+                    f"stderr:\n{stderr.strip() or '<empty>'}"
+                )
+
             # Check for specific error message in stdout or stderr
             count = handle_output(stdout, stderr, toolname)
 
@@ -130,9 +137,9 @@ def handle_output(stdout_, stderr_, toolname):
     elif toolname == "latte":
         with open("numOfLatticePoints", 'r') as f:
             count = f.read()
-    elif toolname == "volesti":
+    elif toolname.startswith("volesti"):
         for line in stdout_.splitlines():
-            if line.startswith("c vol"):
+            if line.startswith("c vol") or line.startswith("s vol"):
                 parts = line.split()
                 if parts[2] == "inf":
                     return 0
@@ -141,8 +148,11 @@ def handle_output(stdout_, stderr_, toolname):
                     print(f"c WARNING: Volume is negative ({count})")
                 break
         if count == -1:
-            print(stdout_)
-            raise ValueError("Volume line not found in output")
+            raise ValueError(
+                f"Volume line not found in {toolname} output.\n"
+                f"stdout:\n{stdout_.strip() or '<empty>'}\n"
+                f"stderr:\n{stderr_.strip() or '<empty>'}"
+            )
     elif toolname == "latteintegrate":
         for line in stdout_.splitlines():
             if line.startswith("     Decimal"):
@@ -152,8 +162,11 @@ def handle_output(stdout_, stderr_, toolname):
                     print(f"c WARNING: Volume is negative ({count})")
                 break
         if count == -1:
-            print(stdout_)
-            raise ValueError("Volume line not found in output")
+            raise ValueError(
+                "Volume line not found in latteintegrate output.\n"
+                f"stdout:\n{stdout_.strip() or '<empty>'}\n"
+                f"stderr:\n{stderr_.strip() or '<empty>'}"
+            )
     else:
         raise ValueError(f"Unknown toolname: {toolname}")
 
