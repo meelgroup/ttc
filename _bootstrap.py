@@ -6,7 +6,8 @@ import subprocess
 import sys
 import tarfile
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
+from urllib.parse import urlparse
 
 GITHUB_REPO = "meelgroup/ttc"
 
@@ -61,6 +62,42 @@ def _bootstrap_packages_installed() -> bool:
     return True
 
 
+def _version_candidates(version: str) -> List[str]:
+    """Generate plausible Git tag/version spellings for release assets.
+
+    Python package metadata normalizes versions like 1.0.011 to 1.0.11, but a
+    GitHub release may still be tagged and archived under the zero-padded form.
+    Try the canonical version first, then a small set of padded patch variants.
+    """
+    candidates = [version]
+    parts = version.split(".")
+    if len(parts) < 3 or any(not part.isdigit() for part in parts):
+        return candidates
+
+    patch = parts[-1]
+    if int(patch) == 0:
+        return candidates
+
+    for width in (2, 3):
+        padded_patch = patch.zfill(width)
+        if padded_patch != patch:
+            candidate = ".".join(parts[:-1] + [padded_patch])
+            if candidate not in candidates:
+                candidates.append(candidate)
+    return candidates
+
+
+def _release_candidates(version: str, artifact: str) -> List[Tuple[str, str]]:
+    return [
+        (
+            candidate_version,
+            f"https://github.com/{GITHUB_REPO}/releases/download/"
+            f"v{candidate_version}/ttc-{candidate_version}-{artifact}.tar.gz",
+        )
+        for candidate_version in _version_candidates(version)
+    ]
+
+
 def ensure_ready() -> Path:
     sibling = _sibling_bin_dir()
     if sibling is not None and _bootstrap_packages_installed():
@@ -71,23 +108,53 @@ def ensure_ready() -> Path:
         return bin_dir
 
     artifact = _platform_artifact()
-    archive_name = f"ttc-{VERSION}-{artifact}.tar.gz"
-    url = os.environ.get("TTC_ARCHIVE_URL") or (
-        f"https://github.com/{GITHUB_REPO}/releases/download/v{VERSION}/{archive_name}"
-    )
-
-    print(f"[ttc] First-run setup: downloading {archive_name} ...", file=sys.stderr)
-
     import requests
 
     state = _state_dir()
-    archive_path = state / archive_name
+    override_url = os.environ.get("TTC_ARCHIVE_URL")
+    if override_url:
+        archive_name = Path(urlparse(override_url).path).name or f"ttc-{VERSION}-{artifact}.tar.gz"
+        candidates = [(VERSION, override_url)]
+    else:
+        archive_name = ""
+        candidates = _release_candidates(VERSION, artifact)
 
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(archive_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=65536):
-                f.write(chunk)
+    archive_path: Optional[Path] = None
+    tried_urls = []
+    for candidate_version, url in candidates:
+        if override_url:
+            candidate_archive_name = archive_name
+        else:
+            candidate_archive_name = f"ttc-{candidate_version}-{artifact}.tar.gz"
+
+        print(
+            f"[ttc] First-run setup: downloading {candidate_archive_name} ...",
+            file=sys.stderr,
+        )
+        archive_path = state / candidate_archive_name
+
+        try:
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                with open(archive_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=65536):
+                        f.write(chunk)
+            break
+        except requests.HTTPError as exc:
+            if archive_path.exists():
+                archive_path.unlink()
+            if override_url or exc.response is None or exc.response.status_code != 404:
+                raise
+            tried_urls.append(url)
+            archive_path = None
+    else:
+        tried = "\n".join(f"  - {url}" for url in tried_urls)
+        raise RuntimeError(
+            f"Unable to find a release archive for TTC {VERSION} on GitHub.\n"
+            f"Tried:\n{tried}"
+        )
+
+    assert archive_path is not None
 
     extract_dir = state / "extract"
     if extract_dir.exists():
