@@ -1,7 +1,17 @@
 {
   "include": [
-    "src/**/*.py"
+    "src/**/*.py",
+    "ttc.py",
+    "_bootstrap.py"
   ],
-  "reportMissingImports": true,
-  "reportUndefinedVariable": true
+  "exclude": [
+    "**/__pycache__",
+    "bin/**",
+    "build/**",
+    "benchmarks/**",
+    "benchmarks_polytope/**",
+    "python_polytope/**",
+    "utils/**"
+  ],
+  "pythonVersion": "3.11"
 }

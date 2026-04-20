@@ -369,9 +369,14 @@ jobs:
           HTTP_PID=$!
           trap "kill $HTTP_PID 2>/dev/null || true" EXIT
 
-          for _ in 1 2 3 4 5; do
+          for i in 1 2 3 4 5; do
             if curl -fsS "http://localhost:8765/${ARCHIVE}" -o /dev/null; then
               break
+            fi
+            if [ "$i" = "5" ]; then
+              echo "HTTP server never came up. Log:"
+              cat /tmp/http.log
+              exit 1
             fi
             sleep 1
           done

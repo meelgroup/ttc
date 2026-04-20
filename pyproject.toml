@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ttc"
+version = "1.0.009"
+description = "Volume computation for SMT LRA formulas"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    # Everything from requirements.txt EXCEPT pycddlib and polytope.
+    # Those need custom wheels and are handled by the first-run bootstrap.
+    "lark",
+    "numpy",
+    "pandas",
+    "z3-solver",
+    "cvxopt",
+    "requests",
+]
+
+[project.scripts]
+ttc = "ttc:ttc"
+
+[tool.setuptools]
+py-modules = ["ttc", "_bootstrap"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
