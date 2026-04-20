@@ -177,9 +177,19 @@ if need_build cvc5; then
   PACT_DIR="$DEPS_DIR/pact"
   PACT_BUILD="$PACT_DIR/build"
   PACT_CONFIGURE_ARGS=(--auto-download --tracing)
+  PACT_NEEDS_CLEAN=0
 
   if cmake --version | head -n1 | grep -Eq 'version (4|[5-9])\.'; then
     PACT_CONFIGURE_ARGS+=(-DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+
+    # libpoly is still configured as a nested ExternalProject via CMake, so
+    # the policy minimum has to be injected into its own CMAKE_ARGS as well.
+    if ! grep -q 'CMAKE_POLICY_VERSION_MINIMUM=3.5' "$PACT_DIR/cmake/FindPoly.cmake"; then
+      echo "  -> Patching libpoly ExternalProject for CMake 4 compatibility"
+      perl -0pi -e 's@CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release@CMAKE_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5\n               -DCMAKE_BUILD_TYPE=Release@' \
+        "$PACT_DIR/cmake/FindPoly.cmake"
+      PACT_NEEDS_CLEAN=1
+    fi
   fi
 
   # Older cached cvc5/pact build trees may have generated a CaDiCaL external
@@ -188,6 +198,18 @@ if need_build cvc5; then
   if [[ -f "$PACT_BUILD/deps/tmp/CaDiCaL-EP-cfgcmd.txt" ]] && \
      ! grep -q 'makefile\.in' "$PACT_BUILD/deps/tmp/CaDiCaL-EP-cfgcmd.txt"; then
     echo "  -> Removing stale pact build dir with outdated CaDiCaL configure rules"
+    PACT_NEEDS_CLEAN=1
+  fi
+
+  # Likewise, stale cached libpoly configure scripts may predate the policy
+  # workaround above. Regenerate them if the policy arg is missing.
+  if [[ -f "$PACT_BUILD/deps/src/Poly-EP-stamp/Poly-EP-configure-Production.cmake" ]] && \
+     ! grep -q 'CMAKE_POLICY_VERSION_MINIMUM=3.5' "$PACT_BUILD/deps/src/Poly-EP-stamp/Poly-EP-configure-Production.cmake"; then
+    echo "  -> Removing stale pact build dir with outdated libpoly configure rules"
+    PACT_NEEDS_CLEAN=1
+  fi
+
+  if [[ "$PACT_NEEDS_CLEAN" == 1 ]]; then
     rm -rf "$PACT_BUILD"
   fi
 
