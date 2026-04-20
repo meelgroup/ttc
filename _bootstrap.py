@@ -12,6 +12,8 @@ GITHUB_REPO = "meelgroup/ttc"
 VERSION = "0.1.0"
 
 CUSTOM_WHEEL_PACKAGES = ["pycddlib", "polytope"]
+# pip-install name → import name (pycddlib installs as `cdd`).
+CUSTOM_WHEEL_IMPORT_NAMES = ["cdd", "polytope"]
 
 NATIVE_BINARIES = ["cvc5", "hall_tool", "lrs", "sample", "volume"]
 
@@ -44,10 +46,9 @@ def _sibling_bin_dir() -> Optional[Path]:
 
 
 def _wheels_installed() -> bool:
-    for pkg in CUSTOM_WHEEL_PACKAGES:
-        try:
-            __import__(pkg.replace("-", "_"))
-        except ImportError:
+    import importlib.util
+    for name in CUSTOM_WHEEL_IMPORT_NAMES:
+        if importlib.util.find_spec(name) is None:
             return False
     return True
 
