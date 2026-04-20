@@ -3,5 +3,4 @@ numpy
 pandas
 z3-solver
 polytope
-pycddlib
 cvxopt

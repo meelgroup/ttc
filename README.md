@@ -16,7 +16,7 @@ cmake build-essential curl libeigen3-dev libboost-dev libboost-program-options-d
 ```
 macOS:
 ```
-brew install cmake curl eigen boost gmp mpfr autoconf automake libtool pkg-config
+brew install cmake curl eigen boost gmp mpfr autoconf automake libtool pkg-config cddlib
 ```
 Make sure you have Python 3.11+.
 

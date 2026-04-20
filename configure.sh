@@ -219,5 +219,18 @@ if need_build cvc5; then
   echo "  -> cvc5 copied to bin/"
 fi
 
+# --- pycddlib (Python bindings for cddlib) ---
+echo ""
+echo "--- Installing pycddlib ---"
+PYCDDLIB_CFLAGS="-I$CDDLIB_PREFIX/include"
+PYCDDLIB_LDFLAGS="-L$CDDLIB_PREFIX/lib"
+if [[ "$(uname)" == "Darwin" ]]; then
+  GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
+  [[ -n "$GMP_PREFIX" ]] && PYCDDLIB_CFLAGS="$PYCDDLIB_CFLAGS -I$GMP_PREFIX/include"
+  [[ -n "$GMP_PREFIX" ]] && PYCDDLIB_LDFLAGS="$PYCDDLIB_LDFLAGS -L$GMP_PREFIX/lib"
+fi
+CFLAGS="$PYCDDLIB_CFLAGS" LDFLAGS="$PYCDDLIB_LDFLAGS" pip install pycddlib
+echo "  -> pycddlib installed"
+
 echo ""
 echo "=== All dependencies built successfully ==="
