@@ -174,8 +174,23 @@ if need_build cvc5; then
   echo ""
   echo "--- Building pact (cvc5) ---"
   PACT_DIR="$DEPS_DIR/pact"
-  (cd "$PACT_DIR" && ./configure.sh --auto-download --tracing)
   PACT_BUILD="$PACT_DIR/build"
+  PACT_CONFIGURE_ARGS=(--auto-download --tracing)
+
+  if cmake --version | head -n1 | grep -Eq 'version (4|[5-9])\.'; then
+    PACT_CONFIGURE_ARGS+=(-DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+  fi
+
+  # Older cached cvc5/pact build trees may have generated a CaDiCaL external
+  # project that still tries to configure the downloaded dependency with CMake,
+  # which fails under CMake 4. Force a clean reconfigure in that case.
+  if [[ -f "$PACT_BUILD/deps/tmp/CaDiCaL-EP-cfgcmd.txt" ]] && \
+     ! grep -q 'makefile\.in' "$PACT_BUILD/deps/tmp/CaDiCaL-EP-cfgcmd.txt"; then
+    echo "  -> Removing stale pact build dir with outdated CaDiCaL configure rules"
+    rm -rf "$PACT_BUILD"
+  fi
+
+  (cd "$PACT_DIR" && ./configure.sh "${PACT_CONFIGURE_ARGS[@]}")
   make -j"$NPROC" -C "$PACT_BUILD"
   install -m 755 "$PACT_BUILD/bin/cvc5" "$BIN_DIR/cvc5"
   echo "  -> cvc5 copied to bin/"
