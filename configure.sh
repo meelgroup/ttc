@@ -120,6 +120,12 @@ if need_build hall_tool; then
     ALLSAT_CMAKE_ARGS+=(-DCMAKE_POLICY_VERSION_MINIMUM=3.5)
   fi
 
+  # Link hall_tool as a fully static executable on Linux. Apple ld does not
+  # support -static (no libc.a shipped), so skip on macOS.
+  if [[ "$(uname)" != "Darwin" ]]; then
+    ALLSAT_CMAKE_ARGS+=(-DCMAKE_EXE_LINKER_FLAGS=-static)
+  fi
+
   cmake -S "$ALLSAT_SRC" -B "$ALLSAT_BUILD" "${ALLSAT_CMAKE_ARGS[@]}"
   cmake --build "$ALLSAT_BUILD" -j"$NPROC"
   install -m 755 "$ALLSAT_BUILD/hall_tool" "$BIN_DIR/hall_tool"
@@ -176,7 +182,7 @@ if need_build cvc5; then
   echo "--- Building pact (cvc5) ---"
   PACT_DIR="$DEPS_DIR/pact"
   PACT_BUILD="$PACT_DIR/build"
-  PACT_CONFIGURE_ARGS=(--auto-download --tracing)
+  PACT_CONFIGURE_ARGS=(--auto-download --tracing --static)
 
   if cmake --version | head -n1 | grep -Eq 'version (4|[5-9])\.'; then
     PACT_CONFIGURE_ARGS+=(-DCMAKE_POLICY_VERSION_MINIMUM=3.5)

@@ -1,0 +1,217 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version label for the archive name (e.g. v0.1.0). Defaults to the current ref name.'
+        required: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ubuntu-22.04 pins glibc 2.35 as the portability floor. Newer runners
+          # raise glibc and break older distros.
+          - os: ubuntu-22.04
+            artifact: linux-x86_64
+          - os: macos-13
+            artifact: macos-x86_64
+          - os: macos-14
+            artifact: macos-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag }}"
+          [ -n "$tag" ] || tag="${GITHUB_REF_NAME}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            cmake build-essential \
+            libeigen3-dev libboost-dev libboost-program-options-dev \
+            libgmp-dev libmpfr-dev \
+            autoconf automake libtool \
+            texlive-latex-base texlive-latex-recommended \
+            lp-solve liblpsolve55-dev \
+            patchelf \
+            pkg-config
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install \
+            cmake \
+            eigen boost \
+            gmp mpfr \
+            autoconf automake libtool \
+            basictex \
+            pkg-config
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build native dependencies
+        run: bash configure.sh
+
+      - name: Install wheel build/repair tooling
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip wheel
+          if [ "$(uname)" = "Darwin" ]; then
+            python -m pip install delocate
+          else
+            python -m pip install auditwheel
+          fi
+
+      - name: Build pycddlib wheel against bundled cddlib
+        shell: bash
+        run: |
+          CDDLIB_PREFIX="$PWD/bin/deps/cddlib/install"
+          GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
+          GMP_CFLAGS=${GMP_PREFIX:+-I$GMP_PREFIX/include}
+          GMP_LDFLAGS=${GMP_PREFIX:+-L$GMP_PREFIX/lib}
+          ARCHFLAGS=""
+          if [ "$(uname)" = "Darwin" ]; then
+            ARCHFLAGS="-arch $(uname -m)"
+          fi
+
+          mkdir -p dist-raw
+          CFLAGS="-I$CDDLIB_PREFIX/include -I$CDDLIB_PREFIX/include/cddlib $GMP_CFLAGS" \
+          LDFLAGS="-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS" \
+          ARCHFLAGS="$ARCHFLAGS" \
+            pip wheel --no-binary pycddlib --no-deps -w dist-raw pycddlib
+
+      - name: Repair pycddlib wheel (vendor libcddgmp + libgmp)
+        shell: bash
+        run: |
+          mkdir -p wheels
+          CDDLIB_PREFIX="$PWD/bin/deps/cddlib/install"
+          if [ "$(uname)" = "Darwin" ]; then
+            DYLD_LIBRARY_PATH="$CDDLIB_PREFIX/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" \
+              delocate-wheel -v -w wheels dist-raw/pycddlib-*.whl
+          else
+            # Skip manylinux auditing — we pin glibc via the ubuntu-22.04 runner
+            # rather than building inside a manylinux container.
+            LD_LIBRARY_PATH="$CDDLIB_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+              auditwheel repair --plat linux_x86_64 -w wheels dist-raw/pycddlib-*.whl
+          fi
+
+      - name: Collect other dependency wheels
+        shell: bash
+        run: |
+          # pycddlib is provided by the repaired wheel above — don't double-ship.
+          grep -v '^pycddlib' requirements.txt > requirements-runtime.txt
+          pip download -d wheels -r requirements-runtime.txt
+
+      - name: Stage release payload
+        shell: bash
+        run: |
+          STAGE="ttc-${{ steps.version.outputs.tag }}-${{ matrix.artifact }}"
+          mkdir -p "$STAGE/bin" "$STAGE/wheels"
+
+          cp ttc README.md LICENSE requirements.txt "$STAGE/"
+          cp -R src example "$STAGE/"
+
+          for b in cvc5 hall_tool lrs sample volume; do
+            cp "bin/$b" "$STAGE/bin/"
+          done
+
+          cp wheels/*.whl "$STAGE/wheels/"
+
+          cat > "$STAGE/install.sh" <<'EOS'
+          #!/usr/bin/env bash
+          # Creates .venv/ next to this script and installs the bundled wheels
+          # offline. Override the interpreter with PYTHON=/path/to/python3.
+          set -e
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          PYTHON="${PYTHON:-python3}"
+          VENV="$HERE/.venv"
+
+          "$PYTHON" -m venv "$VENV"
+          "$VENV/bin/pip" install --upgrade pip >/dev/null
+          "$VENV/bin/pip" install --no-index --find-links "$HERE/wheels" \
+            -r "$HERE/requirements.txt"
+
+          # Point the ttc shebang at the venv so ./ttc works without activation.
+          python_bin="$VENV/bin/python3"
+          tmp="$(mktemp)"
+          printf '#!%s\n' "$python_bin" > "$tmp"
+          tail -n +2 "$HERE/ttc" >> "$tmp"
+          mv "$tmp" "$HERE/ttc"
+          chmod +x "$HERE/ttc"
+
+          echo ""
+          echo "Installed. Try:"
+          echo "  $HERE/ttc $HERE/example/box_or_lra.smt2"
+          if [ "$(uname)" = "Darwin" ]; then
+            echo ""
+            echo "macOS: bundled binaries are unsigned. If Gatekeeper blocks them, run:"
+            echo "  xattr -dr com.apple.quarantine $HERE"
+          fi
+          EOS
+          chmod +x "$STAGE/install.sh"
+
+          tar czf "${STAGE}.tar.gz" "$STAGE"
+          echo "ARCHIVE=${STAGE}.tar.gz" >> "$GITHUB_ENV"
+          echo "STAGE=${STAGE}" >> "$GITHUB_ENV"
+
+      - name: Smoke-test the archive in a clean directory
+        shell: bash
+        run: |
+          WORK="$(mktemp -d)"
+          tar xzf "$ARCHIVE" -C "$WORK"
+          cd "$WORK/$STAGE"
+          ./install.sh
+          set +e
+          output=$(./ttc example/box_or_lra.smt2 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          [ "$status" -eq 0 ] || { echo "ERROR: ttc exited $status"; exit "$status"; }
+          echo "$output" | grep -E '^s vol [0-9]+(\.[0-9]+)?' \
+            || { echo "ERROR: expected 's vol <float>' line not found"; exit 1; }
+
+      - name: Upload archive as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ttc-${{ matrix.artifact }}
+          path: ${{ env.ARCHIVE }}
+          retention-days: 14
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.tar.gz
+          draft: false
+          generate_release_notes: true
