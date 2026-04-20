@@ -192,6 +192,25 @@ if need_build cvc5; then
     fi
   fi
 
+  # Apple Clang treats VLA-in-C++ as a hard error. The warning flag name differs
+  # across Clang versions (vla-cxx-extension vs vla-extension), so we pass both
+  # plus -Wno-unknown-warning-option so the unsupported one is silently ignored.
+  if [[ "$(uname)" == "Darwin" ]]; then
+    VLA_FLAGS="-Wno-unknown-warning-option -Wno-vla-cxx-extension -Wno-vla-extension"
+    # Strip any previously-injected VLA CXX_FLAGS lines (idempotent)
+    if grep -q 'Wno-vla' "$PACT_DIR/cmake/FindPoly.cmake"; then
+      perl -0pi -e 's/\n[ \t]*"-DCMAKE_CXX_FLAGS=[^"]*Wno-vla[^"]*"//g' \
+        "$PACT_DIR/cmake/FindPoly.cmake"
+      PACT_NEEDS_CLEAN=1
+    fi
+    if ! grep -qF 'Wno-vla-cxx-extension' "$PACT_DIR/cmake/FindPoly.cmake"; then
+      echo "  -> Patching libpoly ExternalProject to suppress VLA C++ warning on macOS"
+      perl -0pi -e 's@-DCMAKE_BUILD_TYPE=Release@-DCMAKE_BUILD_TYPE=Release\n               "-DCMAKE_CXX_FLAGS='"$VLA_FLAGS"'"@' \
+        "$PACT_DIR/cmake/FindPoly.cmake"
+      PACT_NEEDS_CLEAN=1
+    fi
+  fi
+
   # Older cached cvc5/pact build trees may have generated a CaDiCaL external
   # project that still tries to configure the downloaded dependency with CMake,
   # which fails under CMake 4. Force a clean reconfigure in that case.
@@ -202,11 +221,17 @@ if need_build cvc5; then
   fi
 
   # Likewise, stale cached libpoly configure scripts may predate the policy
-  # workaround above. Regenerate them if the policy arg is missing.
-  if [[ -f "$PACT_BUILD/deps/src/Poly-EP-stamp/Poly-EP-configure-Production.cmake" ]] && \
-     ! grep -q 'CMAKE_POLICY_VERSION_MINIMUM=3.5' "$PACT_BUILD/deps/src/Poly-EP-stamp/Poly-EP-configure-Production.cmake"; then
-    echo "  -> Removing stale pact build dir with outdated libpoly configure rules"
-    PACT_NEEDS_CLEAN=1
+  # workaround or VLA fix above. Regenerate them if either arg is missing.
+  POLY_STAMP="$PACT_BUILD/deps/src/Poly-EP-stamp/Poly-EP-configure-Production.cmake"
+  if [[ -f "$POLY_STAMP" ]]; then
+    NEEDS_REGEN=0
+    ! grep -q 'CMAKE_POLICY_VERSION_MINIMUM=3.5' "$POLY_STAMP" && NEEDS_REGEN=1
+    [[ "$(uname)" == "Darwin" ]] && \
+      ! grep -qF 'Wno-vla-cxx-extension' "$POLY_STAMP" && NEEDS_REGEN=1
+    if [[ "$NEEDS_REGEN" == 1 ]]; then
+      echo "  -> Removing stale pact build dir with outdated libpoly configure rules"
+      PACT_NEEDS_CLEAN=1
+    fi
   fi
 
   if [[ "$PACT_NEEDS_CLEAN" == 1 ]]; then
