@@ -132,11 +132,39 @@ if need_build lrs; then
   echo ""
   echo "--- Building upstream-lrslib (lrs) ---"
   LRS_DIR="$DEPS_DIR/upstream-lrslib"
+  LRS_CONFIGURE_ENV=()
   # lrslong.c / lrsgmp.c / lrsmp.c live in lrsarith-011/ but Makefile.am expects them at root
   for f in lrslong.c lrslong.h lrsgmp.c lrsgmp.h lrsmp.c lrsmp.h; do
     [[ -e "$LRS_DIR/$f" ]] || ln -s "lrsarith-011/$f" "$LRS_DIR/$f"
   done
-  (cd "$LRS_DIR" && autoreconf -i && ./configure && make -j"$NPROC" lrs)
+
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # Apple clang enforces the signal(2) callback signature; this vendored
+    # lrslib release still declares zero-argument handlers.
+    if grep -q 'static void checkpoint ();' "$LRS_DIR/lrslib.c"; then
+      echo "  -> Patching lrslib signal handlers for macOS"
+      perl -0pi -e 's@static void checkpoint \(\);\nstatic void die_gracefully \(\);\nstatic void setup_signals \(void\);\nstatic void timecheck \(\);@static void checkpoint (int signum);\nstatic void die_gracefully (int signum);\nstatic void setup_signals (void);\nstatic void timecheck (int signum);@' \
+        "$LRS_DIR/lrslib.c"
+      perl -0pi -e 's@static void\ntimecheck \(\)\n\{@static void\ntimecheck (int signum)\n{\n  (void) signum;@' \
+        "$LRS_DIR/lrslib.c"
+      perl -0pi -e 's@static void\ncheckpoint \(\)\n\{@static void\ncheckpoint (int signum)\n{\n  (void) signum;@' \
+        "$LRS_DIR/lrslib.c"
+      perl -0pi -e 's@static void\ndie_gracefully \(\)\n\{@static void\ndie_gracefully (int signum)\n{\n  (void) signum;@' \
+        "$LRS_DIR/lrslib.c"
+    fi
+
+    GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
+    if [[ -n "$GMP_PREFIX" ]]; then
+      LRS_CONFIGURE_ENV+=(
+        "GMP_CFLAGS=-I$GMP_PREFIX/include"
+        "GMP_LDFLAGS=-L$GMP_PREFIX/lib"
+        "CPPFLAGS=-I$GMP_PREFIX/include"
+        "LDFLAGS=-L$GMP_PREFIX/lib"
+      )
+    fi
+  fi
+
+  (cd "$LRS_DIR" && autoreconf -i && env "${LRS_CONFIGURE_ENV[@]}" ./configure && env "${LRS_CONFIGURE_ENV[@]}" make -j"$NPROC" lrs)
   install -m 755 "$LRS_DIR/lrs" "$BIN_DIR/lrs"
   echo "  -> lrs copied to bin/"
 fi
