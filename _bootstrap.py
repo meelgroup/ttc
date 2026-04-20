@@ -8,8 +8,6 @@ import tarfile
 from pathlib import Path
 from typing import Optional
 
-import requests
-
 GITHUB_REPO = "meelgroup/ttc"
 VERSION = "0.1.0"
 
@@ -70,6 +68,8 @@ def ensure_ready() -> Path:
     )
 
     print(f"[ttc] First-run setup: downloading {archive_name} ...", file=sys.stderr)
+
+    import requests
 
     state = _state_dir()
     archive_path = state / archive_name

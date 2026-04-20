@@ -283,7 +283,6 @@ jobs:
           # including pycddlib and polytope, because those wheels are bundled
           # locally and installed offline by install.sh.
           cp requirements.txt requirements-release.txt
-          grep -Ev '^(pycddlib|polytope)$' requirements-release.txt > requirements-download.txt
 
           if [ "$(uname)" = "Darwin" ]; then
             # z3-solver 4.16.0.0 only publishes macOS ARM64 wheels tagged for
@@ -296,6 +295,10 @@ jobs:
             ' requirements-release.txt > requirements-release.tmp
             mv requirements-release.tmp requirements-release.txt
           fi
+
+          # Derive the download list AFTER the pin so pip fetches the exact
+          # versions requirements.txt inside the archive will ask for.
+          grep -Ev '^(pycddlib|polytope)$' requirements-release.txt > requirements-download.txt
 
           pip download --only-binary=:all: -d wheels -r requirements-download.txt
           pip download --only-binary=:all: -d wheels scipy networkx
