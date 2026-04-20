@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ttc"
-version = "1.0.011"
+version = "1.0.012"
 description = "Volume computation for SMT LRA formulas"
 readme = "README.md"
 requires-python = ">=3.8"
