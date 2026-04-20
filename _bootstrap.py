@@ -19,9 +19,9 @@ except Exception:
     # VERSION only matters on the download branch — which such users won't hit.
     VERSION = "0.0.0"
 
-CUSTOM_WHEEL_PACKAGES = ["pycddlib", "polytope"]
-# pip-install name → import name (pycddlib installs as `cdd`).
-CUSTOM_WHEEL_IMPORT_NAMES = ["cdd", "polytope"]
+BOOTSTRAP_WHEEL_PACKAGES = ["pycddlib", "polytope", "z3-solver", "cvxopt"]
+# pip-install name → import name. pycddlib installs as `cdd`, z3-solver as `z3`.
+BOOTSTRAP_IMPORT_NAMES = ["cdd", "polytope", "z3", "cvxopt"]
 
 NATIVE_BINARIES = ["cvc5", "hall_tool", "lrs", "sample", "volume"]
 
@@ -53,9 +53,9 @@ def _sibling_bin_dir() -> Optional[Path]:
     return None
 
 
-def _wheels_installed() -> bool:
+def _bootstrap_packages_installed() -> bool:
     import importlib.util
-    for name in CUSTOM_WHEEL_IMPORT_NAMES:
+    for name in BOOTSTRAP_IMPORT_NAMES:
         if importlib.util.find_spec(name) is None:
             return False
     return True
@@ -63,11 +63,11 @@ def _wheels_installed() -> bool:
 
 def ensure_ready() -> Path:
     sibling = _sibling_bin_dir()
-    if sibling is not None and _wheels_installed():
+    if sibling is not None and _bootstrap_packages_installed():
         return sibling
 
     bin_dir = _state_dir() / "bin"
-    if all((bin_dir / b).exists() for b in NATIVE_BINARIES) and _wheels_installed():
+    if all((bin_dir / b).exists() for b in NATIVE_BINARIES) and _bootstrap_packages_installed():
         return bin_dir
 
     artifact = _platform_artifact()
@@ -115,13 +115,13 @@ def ensure_ready() -> Path:
         dst.chmod(dst.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
     wheels_dir = stage / "wheels"
-    print("[ttc] Installing dependencies ...", file=sys.stderr)
+    print("[ttc] Installing runtime dependencies ...", file=sys.stderr)
     subprocess.check_call([
         sys.executable, "-m", "pip", "install",
         "--quiet",
         "--find-links", str(wheels_dir),
         "--no-index",
-        *CUSTOM_WHEEL_PACKAGES,
+        *BOOTSTRAP_WHEEL_PACKAGES,
     ])
 
     shutil.rmtree(extract_dir)

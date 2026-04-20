@@ -4,18 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ttc"
-version = "1.0.010"
+version = "1.0.011"
 description = "Volume computation for SMT LRA formulas"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    # Everything from requirements.txt EXCEPT pycddlib and polytope.
-    # Those need custom wheels and are handled by the first-run bootstrap.
+    # Platform-sensitive native wheels are handled by the first-run bootstrap.
+    # Keep only the dependencies that pipx can install directly here.
     "lark",
     "numpy",
     "pandas",
-    "z3-solver",
-    "cvxopt",
     "requests",
 ]
 
