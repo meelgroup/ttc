@@ -87,31 +87,12 @@ jobs:
             bin/sample
             bin/volume
 
-      - name: Build cddlib
-        run: |
-          CDDLIB_SRC="$PWD/bin/deps/cddlib"
-          CDDLIB_PREFIX="$CDDLIB_SRC/install"
-          CDDLIB_LIB="$CDDLIB_PREFIX/lib/libcddgmp.a"
-          echo "CDDLIB_PREFIX=$CDDLIB_PREFIX" >> $GITHUB_ENV
-          if [ -f "$CDDLIB_LIB" ]; then
-            echo "Using cached cddlib from $CDDLIB_PREFIX"
-            exit 0
-          fi
-          cd "$CDDLIB_SRC"
-          sed -i.bak '/AX_CHECK_COMPILE_FLAG/d' configure.ac
-          autoreconf -i
-          GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
-          ./configure --prefix="$CDDLIB_PREFIX" \
-            ${GMP_PREFIX:+CPPFLAGS="-I$GMP_PREFIX/include"} \
-            ${GMP_PREFIX:+LDFLAGS="-L$GMP_PREFIX/lib"}
-          make -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu) SUBDIRS="lib-src src"
-          make install SUBDIRS="lib-src src"
-          # Ensure all lib-src headers are present (macOS autoreconf can miss some)
-          find "$CDDLIB_SRC/lib-src" -maxdepth 1 -name "*.h" \
-            -exec install -m 644 {} "$CDDLIB_PREFIX/include/cddlib/" \;
+      - name: Build dependencies
+        run: bash configure.sh
 
       - name: Install Python dependencies
         run: |
+          CDDLIB_PREFIX="$PWD/bin/deps/cddlib/install"
           GMP_PREFIX=$(brew --prefix gmp 2>/dev/null || echo "")
           GMP_CFLAGS=${GMP_PREFIX:+-I$GMP_PREFIX/include}
           GMP_LDFLAGS=${GMP_PREFIX:+-L$GMP_PREFIX/lib}
@@ -119,9 +100,6 @@ jobs:
           LDFLAGS="-L$CDDLIB_PREFIX/lib $GMP_LDFLAGS" \
           ARCHFLAGS="-arch $(uname -m)" \
             pip install -r requirements.txt
-
-      - name: Build dependencies
-        run: bash configure.sh
 
       - name: Verify required binaries
         run: |
