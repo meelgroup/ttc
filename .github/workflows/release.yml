@@ -21,8 +21,8 @@ jobs:
           # raise glibc and break older distros.
           - os: ubuntu-22.04
             artifact: linux-x86_64
-          - os: macos-13
-            artifact: macos-x86_64
+          # - os: macos-13
+          #   artifact: macos-x86_64
           - os: macos-14
             artifact: macos-arm64
 
@@ -109,10 +109,11 @@ jobs:
             DYLD_LIBRARY_PATH="$CDDLIB_PREFIX/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" \
               delocate-wheel -v -w wheels dist-raw/pycddlib-*.whl
           else
-            # Skip manylinux auditing — we pin glibc via the ubuntu-22.04 runner
-            # rather than building inside a manylinux container.
+            # Target manylinux_2_35 to match the ubuntu-22.04 runner's glibc.
+            # Raise this if you bump the runner; lower it only if you build
+            # inside an older manylinux container.
             LD_LIBRARY_PATH="$CDDLIB_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-              auditwheel repair --plat linux_x86_64 -w wheels dist-raw/pycddlib-*.whl
+              auditwheel repair --plat manylinux_2_35_x86_64 -w wheels dist-raw/pycddlib-*.whl
           fi
 
       - name: Collect other dependency wheels
@@ -137,38 +138,7 @@ jobs:
 
           cp wheels/*.whl "$STAGE/wheels/"
 
-          cat > "$STAGE/install.sh" <<'EOS'
-          #!/usr/bin/env bash
-          # Creates .venv/ next to this script and installs the bundled wheels
-          # offline. Override the interpreter with PYTHON=/path/to/python3.
-          set -e
-          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-          PYTHON="${PYTHON:-python3}"
-          VENV="$HERE/.venv"
-
-          "$PYTHON" -m venv "$VENV"
-          "$VENV/bin/pip" install --upgrade pip >/dev/null
-          "$VENV/bin/pip" install --no-index --find-links "$HERE/wheels" \
-            -r "$HERE/requirements.txt"
-
-          # Point the ttc shebang at the venv so ./ttc works without activation.
-          python_bin="$VENV/bin/python3"
-          tmp="$(mktemp)"
-          printf '#!%s\n' "$python_bin" > "$tmp"
-          tail -n +2 "$HERE/ttc" >> "$tmp"
-          mv "$tmp" "$HERE/ttc"
-          chmod +x "$HERE/ttc"
-
-          echo ""
-          echo "Installed. Try:"
-          echo "  $HERE/ttc $HERE/example/box_or_lra.smt2"
-          if [ "$(uname)" = "Darwin" ]; then
-            echo ""
-            echo "macOS: bundled binaries are unsigned. If Gatekeeper blocks them, run:"
-            echo "  xattr -dr com.apple.quarantine $HERE"
-          fi
-          EOS
-          chmod +x "$STAGE/install.sh"
+          install -m 755 utils/install.sh "$STAGE/install.sh"
 
           tar czf "${STAGE}.tar.gz" "$STAGE"
           echo "ARCHIVE=${STAGE}.tar.gz" >> "$GITHUB_ENV"

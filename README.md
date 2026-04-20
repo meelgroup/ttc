@@ -6,30 +6,31 @@
 
 `ttc` is a volume computation for SMT (LRA) formulas. Given an LRA formula, `ttc` returns the volume of the solution space with $(\varepsilon,\delta)$-guarantees. Find more details in our [KR 2025 paper](https://arxiv.org/abs/2508.09934).
 
-## Building
+## Install
 
-**Install Requirements**
-
-Linux:
-```
-sudo apt install cmake build-essential curl libeigen3-dev libboost-dev libboost-program-options-dev libgmp-dev libmpfr-dev autoconf automake libtool pkg-config
-```
-macOS:
-```
-brew install cmake curl eigen boost gmp mpfr autoconf automake libtool pkg-config
-```
-Make sure you have Python 3.11+.
-
-**Clone and Install**
+Download the archive for your platform from the [Releases page](https://github.com/meelgroup/ttc/releases) according to your OS. Now, extract and install (change file name based on OS):
 
 ```sh
-git clone --recurse-submodules https://github.com/meelgroup/ttc
-cd ttc
-pip install -r requirements.txt
-bash configure.sh
+tar xzf ttc-*.tar.gz
+cd ttc-<version>-<platform>
+./install.sh
 ```
 
-`configure.sh` builds all C++ dependencies (cvc5, VolEsti, allsat-circuits, lrslib) into `bin/`.
+`install.sh` creates a local `.venv/`, installs the bundled Python wheels
+offline, and rewrites the `ttc` shebang so the script runs without activating
+the venv. Requires `python3` 3.11+ on the system; override which interpreter is
+used with `PYTHON=/path/to/python3 ./install.sh`.
+
+On macOS, if Gatekeeper blocks the unsigned binaries:
+```sh
+xattr -dr com.apple.quarantine .
+```
+
+The install directory is **not relocatable** — the venv path is baked into the
+shebang. If you move the folder, re-run `install.sh`.
+
+Building from source (for contributors, or platforms without a prebuilt
+archive) is documented in [utils/install.md](utils/install.md).
 
 ## Usage
 
