@@ -38,7 +38,8 @@ if [[ "$FORCE" == 1 ]] || [[ ! -f "$CDDLIB_LIB" ]]; then
     ./configure --prefix="$CDDLIB_PREFIX" \
       ${GMP_PREFIX:+CPPFLAGS="-I$GMP_PREFIX/include"} \
       ${GMP_PREFIX:+LDFLAGS="-L$GMP_PREFIX/lib"} && \
-    make -j"$NPROC" && make install)
+    make -j"$NPROC" SUBDIRS="lib-src src" && \
+    make install SUBDIRS="lib-src src")
   echo "  -> cddlib installed to $CDDLIB_PREFIX"
 else
   echo "  -> cddlib already built, skipping"
