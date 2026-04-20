@@ -247,12 +247,42 @@ jobs:
               auditwheel repair --plat manylinux_2_35_x86_64 -w wheels dist-raw/pycddlib-*.whl
           fi
 
+      - name: Build polytope wheel from source
+        shell: bash
+        run: |
+          mkdir -p wheels
+          pip wheel --no-binary polytope --no-deps -w wheels polytope
+          if ! compgen -G 'wheels/polytope-*.whl' > /dev/null; then
+            echo "ERROR: expected a built polytope wheel"
+            exit 1
+          fi
+
       - name: Collect other dependency wheels
         shell: bash
         run: |
-          # pycddlib is provided by the repaired wheel above — don't double-ship.
-          grep -v '^pycddlib' requirements.txt > requirements-runtime.txt
-          pip download -d wheels -r requirements-runtime.txt
+          # pycddlib and polytope are provided by the locally built wheels above.
+          grep -Ev '^(pycddlib|polytope)$' requirements.txt > requirements-runtime.txt
+          cp requirements-runtime.txt requirements-release.txt
+
+          if [ "$(uname)" = "Darwin" ]; then
+            # z3-solver 4.16.0.0 only publishes macOS ARM64 wheels tagged for
+            # macOS 15.0+, which a macOS 14 builder will not vendor into an
+            # offline archive. Pin the macOS release artifact to the newest Z3
+            # wheel that still targets macOS 11.0+ ARM64.
+            awk '
+              /^z3-solver([[:space:]]|$)/ { print "z3-solver==4.13.1.0"; next }
+              { print }
+            ' requirements-release.txt > requirements-release.tmp
+            mv requirements-release.tmp requirements-release.txt
+          fi
+
+          pip download --only-binary=:all: -d wheels -r requirements-release.txt
+          pip download --only-binary=:all: -d wheels scipy networkx
+
+          if [ "$(uname)" = "Darwin" ] && ! compgen -G 'wheels/z3_solver-*.whl' > /dev/null; then
+            echo "ERROR: expected a bundled z3-solver wheel for the macOS archive"
+            exit 1
+          fi
 
       - name: Stage release payload
         shell: bash
@@ -260,7 +290,8 @@ jobs:
           STAGE="ttc-${{ steps.version.outputs.tag }}-${{ matrix.artifact }}"
           mkdir -p "$STAGE/bin" "$STAGE/wheels"
 
-          cp ttc README.md LICENSE requirements.txt "$STAGE/"
+          cp ttc README.md LICENSE "$STAGE/"
+          cp requirements-release.txt "$STAGE/requirements.txt"
           cp -R src example "$STAGE/"
 
           for b in cvc5 hall_tool lrs sample volume; do
