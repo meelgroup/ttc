@@ -70,6 +70,15 @@ if need_build volume || need_build sample; then
       | tar xz --strip-components=1 -C "$LPSOLVE_SRC"
   fi
 
+  # VolEsti forces fully static executables in this example. Apple ld does not
+  # support that mode, and linking fails with "library 'crt0.o' not found".
+  if [[ "$(uname)" == "Darwin" ]] && \
+     grep -q 'set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")' "$VOLESTI_SRC/CMakeLists.txt"; then
+    echo "  -> Disabling unsupported static executable link flag on macOS"
+    perl -0pi -e 's@set\(CMAKE_EXE_LINKER_FLAGS "\$\{CMAKE_EXE_LINKER_FLAGS\} -static"\)@if(NOT APPLE)\n  set(CMAKE_EXE_LINKER_FLAGS "\$\{CMAKE_EXE_LINKER_FLAGS\} -static")\nendif()@' \
+      "$VOLESTI_SRC/CMakeLists.txt"
+  fi
+
   # Clean stale build dir if lp_solve wasn't seeded in the previous run
   if [[ -d "$VOLESTI_BUILD" ]] && \
      grep -q "FATAL_ERROR\|lpsolve failed" "$VOLESTI_BUILD/CMakeFiles/CMakeError.log" 2>/dev/null; then
@@ -108,17 +117,7 @@ if need_build hall_tool; then
   echo "  -> hall_tool copied to bin/"
 fi
 
-# --- pact / cvc5 ---
-if need_build cvc5; then
-  echo ""
-  echo "--- Building pact (cvc5) ---"
-  PACT_DIR="$DEPS_DIR/pact"
-  (cd "$PACT_DIR" && ./configure.sh --auto-download --tracing)
-  PACT_BUILD="$PACT_DIR/build"
-  make -j"$NPROC" -C "$PACT_BUILD"
-  install -m 755 "$PACT_BUILD/bin/cvc5" "$BIN_DIR/cvc5"
-  echo "  -> cvc5 copied to bin/"
-fi
+
 
 # --- upstream-lrslib (lrs) ---
 if need_build lrs; then
@@ -132,6 +131,18 @@ if need_build lrs; then
   (cd "$LRS_DIR" && autoreconf -i && ./configure && make -j"$NPROC" lrs)
   install -m 755 "$LRS_DIR/lrs" "$BIN_DIR/lrs"
   echo "  -> lrs copied to bin/"
+fi
+
+# --- pact / cvc5 ---
+if need_build cvc5; then
+  echo ""
+  echo "--- Building pact (cvc5) ---"
+  PACT_DIR="$DEPS_DIR/pact"
+  (cd "$PACT_DIR" && ./configure.sh --auto-download --tracing)
+  PACT_BUILD="$PACT_DIR/build"
+  make -j"$NPROC" -C "$PACT_BUILD"
+  install -m 755 "$PACT_BUILD/bin/cvc5" "$BIN_DIR/cvc5"
+  echo "  -> cvc5 copied to bin/"
 fi
 
 echo ""
