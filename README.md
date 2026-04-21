@@ -9,9 +9,10 @@
 
 ### Quick install via pipx (recommended)
 
-Requires Python 3.11+ and `pipx`
+Requires Python 3.11 and `pipx`
 
 ```sh
+sudo apt install python3.11 python3.11-venv
 python3 -m pip install --user pipx setuptools
 python3 -m pipx ensurepath
 ```
@@ -19,7 +20,7 @@ python3 -m pipx ensurepath
 Now install `ttc` using `pipx`.
 
 ```sh
-pipx install git+https://github.com/meelgroup/ttc.git
+pipx install --python python3.11 git+https://github.com/meelgroup/ttc.git
 ```
 
 `ttc` is ready for usage like:
