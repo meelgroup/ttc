@@ -11,8 +11,12 @@
 
 Requires Python 3.11 and `pipx`
 
-```sh
+```bash
 sudo apt install python3.11 python3.11-venv
+brew install python@3.11
+```
+
+```sh
 python3 -m pip install --user pipx setuptools
 python3 -m pipx ensurepath
 ```
@@ -24,10 +28,10 @@ pipx install --python python3.11 git+https://github.com/meelgroup/ttc.git
 ```
 
 `ttc` is ready for usage like:
+
 ```sh
 ttc example/box_or_lra.smt2
 ```
-
 
 First invocation of `ttc` downloads prebuilt binaries and dependency wheels; subsequent runs start instantly.
 
