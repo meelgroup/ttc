@@ -1,8 +1,19 @@
+# Using the Released versions
+
+The second recommended way to run ttc is to download a version of ttc and the required dependencies from the [Releases page](https://github.com/meelgroup/ttc/releases). Install the dependencies using
+```
+pip install -r requirements.txt
+```
+and run ttc using
+
+```
+python ttc.py filename.smt2
+```
+
 # Building ttc from source
 
-The released binary archives (see the [Releases page](https://github.com/meelgroup/ttc/releases))
-are the recommended way to run `ttc`. This document covers the from-source build
-for contributors and for platforms without a prebuilt archive.
+
+If you want to build from source code, follow the following instructions
 
 ## System requirements
 
@@ -35,13 +46,13 @@ bash configure.sh
 lrslib, cddlib) into `bin/` and `bin/deps/`. Pass `--force` to rebuild a
 dependency that is already present.
 
-## Notes on pycddlib
+**Notes on pycddlib**:
 
 `pycddlib` links against the GMP build of cddlib. The repo builds its own copy
 under `bin/deps/cddlib/install`; point `pip` at it so the extension module
 finds the right headers and library:
 
-```sh
+<!-- ```sh
 CDDLIB_PREFIX="$PWD/bin/deps/cddlib/install"
 CFLAGS="-I$CDDLIB_PREFIX/include -I$CDDLIB_PREFIX/include/cddlib" \
 LDFLAGS="-L$CDDLIB_PREFIX/lib -Wl,-rpath,$CDDLIB_PREFIX/lib" \
@@ -49,14 +60,14 @@ LDFLAGS="-L$CDDLIB_PREFIX/lib -Wl,-rpath,$CDDLIB_PREFIX/lib" \
 ```
 
 On macOS add `-I$(brew --prefix gmp)/include` / `-L$(brew --prefix gmp)/lib`
-to `CFLAGS`/`LDFLAGS` and `ARCHFLAGS="-arch $(uname -m)"` to the command.
+to `CFLAGS`/`LDFLAGS` and `ARCHFLAGS="-arch $(uname -m)"` to the command. -->
 
 ## Running
 
 ```sh
 ./ttc example/box_or_lra.smt2
 ```
-
+<!--
 If `pycddlib` was built against the in-tree cddlib you may need to expose the
 library path at runtime:
 
@@ -64,4 +75,4 @@ library path at runtime:
 export LD_LIBRARY_PATH="$PWD/bin/deps/cddlib/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # macOS
 export DYLD_LIBRARY_PATH="$PWD/bin/deps/cddlib/install/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
-```
+``` -->
